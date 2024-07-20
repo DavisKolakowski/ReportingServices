@@ -1,0 +1,87 @@
+### Get all reports
+GET https://localhost:5001/api/reports/all
+
+### Get all active reports
+GET https://localhost:5001/api/reports/active
+
+### Get all available report sources
+GET https://localhost:5001/api/reports/sources/available
+
+### Get report details by key
+GET https://localhost:5001/api/reports/{key}
+
+### Create a new report
+POST https://localhost:5001/api/reports
+Content-Type: application/json
+
+{
+  "model": {
+    "key": "report_key",
+    "reportSourceId": 1,
+    "name": "Report Name",
+    "description": "Report Description",
+    "isActive": true,
+    "hasParameters": false,
+    "createdByUser": "username"
+  }
+}
+
+### Update a report
+PUT https://localhost:5001/api/reports
+Content-Type: application/json
+
+{
+  "model": {
+    "key": "report_key",
+    "name": "Updated Report Name",
+    "description": "Updated Report Description",
+    "isActive": true,
+    "updatedByUser": "username"
+  }
+}
+
+### Activate a report
+PUT https://localhost:5001/api/reports/activate
+Content-Type: application/json
+
+{
+  "model": {
+    "key": "report_key",
+    "updatedByUser": "username"
+  }
+}
+
+### Disable a report
+PUT https://localhost:5001/api/reports/disable
+Content-Type: application/json
+
+{
+  "model": {
+    "key": "report_key",
+    "updatedByUser": "username"
+  }
+}
+
+### Delete a report
+DELETE https://localhost:5001/api/reports
+Content-Type: application/json
+
+{
+  "model": {
+    "key": "report_key"
+  }
+}
+
+### Execute a report
+POST https://localhost:5001/api/reports/execute
+Content-Type: application/json
+
+{
+  "model": {
+    "key": "report_key",
+    "parameters": {
+      "param1": "value1",
+      "param2": "value2"
+    }
+  }
+}
