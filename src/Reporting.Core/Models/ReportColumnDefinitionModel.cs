@@ -1,8 +1,8 @@
 ﻿namespace Reporting.Core.Models
 {
-    public class ReportColumnDefinitionView
+    public class ReportColumnDefinitionModel
     {
-        public int Position { get; set; }
+        public int ColumnId { get; set; }
         public string? Name { get; set; }
         public string? SqlDataType { get; set; }
         public bool IsNullable { get; set; }

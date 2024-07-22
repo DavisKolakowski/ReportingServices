@@ -1,6 +1,6 @@
 ﻿namespace Reporting.Core.Models
 {
-    public class ReportView
+    public class ReportModel
     {
         public int Id { get; set; }
         public string? Key { get; set; }

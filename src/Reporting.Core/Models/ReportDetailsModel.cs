@@ -7,7 +7,8 @@
         public string? Description { get; set; }
         public bool IsActive { get; set; }
         public bool HasParameters { get; set; }
-        public ReportParameterView[]? Parameters { get; set; }
-        public ReportColumnDefinitionView[] ColumnDefinitions { get; set; } = Array.Empty<ReportColumnDefinitionView>();
+        public int ReportSourceId { get; set; }
+        public ReportParameterModel[]? Parameters { get; set; }
+        public ReportColumnDefinitionModel[] ColumnDefinitions { get; set; } = Array.Empty<ReportColumnDefinitionModel>();
     }
 }

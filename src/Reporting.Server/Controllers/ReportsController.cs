@@ -23,7 +23,7 @@ namespace Reporting.Server.Controllers
         public async Task<IActionResult> GetAllActiveReports()
         {
             var reports = await _reportService.GetAllActiveReportsAsync();
-            var reportViews = reports.Select(r => new ReportView
+            var reportModels = reports.Select(r => new ReportModel
             {
                 Key = r.Key,
                 Name = r.Name,
@@ -32,7 +32,7 @@ namespace Reporting.Server.Controllers
                 HasParameters = r.HasParameters
             });
 
-            return Ok(reportViews);
+            return Ok(reportModels);
         }
 
         [HttpGet("{key}")]
@@ -45,23 +45,24 @@ namespace Reporting.Server.Controllers
             }
             var reportDetailsResponse = new ReportDetailsResponse
             {
-                ReportDetail = new ReportDetailsModel
+                Model = new ReportDetailsModel
                 {
                     Key = report.Key,
                     Name = report.Name,
                     Description = report.Description,
                     IsActive = report.IsActive,
                     HasParameters = report.HasParameters,
-                    Parameters = report.Parameters?.Select(p => new ReportParameterView
+                    ReportSourceId = report.ReportSourceId,
+                    Parameters = report.Parameters?.Select(p => new ReportParameterModel
                     {
                         Position = p.Position,
                         Name = p.Name,
                         SqlDataType = p.SqlDataType,
                         HasDefaultValue = p.HasDefaultValue
                     }).ToArray(),
-                    ColumnDefinitions = report.ColumnDefinitions.Select(c => new ReportColumnDefinitionView
+                    ColumnDefinitions = report.ColumnDefinitions.Select(c => new ReportColumnDefinitionModel
                     {
-                        Position = c.Position,
+                        ColumnId = c.ColumnId,
                         Name = c.Name,
                         SqlDataType = c.SqlDataType,
                         IsNullable = c.IsNullable,
@@ -74,16 +75,39 @@ namespace Reporting.Server.Controllers
         }
 
         [HttpPost("execute")]
-        public async Task<IActionResult> ExecuteReport(ExecuteReportRequest request)
+        public async Task<ActionResult<ExecuteReportResponse>> ExecuteReport(ExecuteReportRequest request)
         {
-            var data = await _reportService.GetReportDataAsync(request.Model.Key, request.Model.Parameters);
+            var executeReportModel = request.Model;
 
-            var response = new ExecuteReportResponse
+            if (!ModelState.IsValid || executeReportModel == null)
             {
-                ReportData = data,
+                return BadRequest(ModelState);
+            }
+
+            var data = await _reportService.GetReportDataGridAsync(executeReportModel);
+
+            var response = new ExecuteReportResponse(data)
+            {
+                Model = executeReportModel,
             };
 
             return Ok(response);
+        }
+
+        [HttpPost("download")]
+        public async Task<IActionResult> DownloadReport(DownloadReportRequest request)
+        {
+            var executeReportModel = request.Model;
+
+            if (!ModelState.IsValid || executeReportModel == null)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var reportBytes = await _reportService.GetReportDataAsBytesAsync(executeReportModel);
+
+            var fileName = $"{executeReportModel.Key}.xlsx";
+            return File(reportBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
         }
 
         [HttpPost]
@@ -93,7 +117,7 @@ namespace Reporting.Server.Controllers
             newReport.Key = newReport.Key.ToLower();
 
             var createdReport = await _reportService.CreateReportAsync(newReport);
-            var reportView = new ReportView
+            var reportModel = new ReportModel
             {
                 Key = createdReport.Key,
                 Name = createdReport.Name,
@@ -102,7 +126,7 @@ namespace Reporting.Server.Controllers
                 HasParameters = createdReport.HasParameters
             };
 
-            return CreatedAtAction(nameof(GetReportDetails), new { key = createdReport.Key }, reportView);
+            return CreatedAtAction(nameof(GetReportDetails), new { key = createdReport.Key }, reportModel);
         }
 
         [HttpPut]
@@ -112,7 +136,7 @@ namespace Reporting.Server.Controllers
             updateReport.Key = updateReport.Key.ToLower();
 
             var updatedReport = await _reportService.UpdateReportAsync(updateReport);
-            var reportView = new ReportView
+            var reportModel = new ReportModel
             {
                 Key = updatedReport.Key,
                 Name = updatedReport.Name,
@@ -121,7 +145,7 @@ namespace Reporting.Server.Controllers
                 HasParameters = updatedReport.HasParameters
             };
 
-            return Ok(reportView);
+            return Ok(reportModel);
         }
 
         [HttpPut("activate")]

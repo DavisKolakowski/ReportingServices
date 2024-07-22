@@ -16,6 +16,7 @@
         Task ActivateReportAsync(ActivateReportModel report);
         Task DisableReportAsync(DisableReportModel report);
         Task DeleteReportAsync(DeleteReportModel report);
-        Task<ReportData> GetReportDataAsync(string reportKey, Dictionary<string, object>? parameters);
+        Task<ReportDataModel> GetReportDataGridAsync(ReportDetailsModel report);
+        Task<byte[]> GetReportDataAsBytesAsync(ReportDetailsModel report);
     }
 }

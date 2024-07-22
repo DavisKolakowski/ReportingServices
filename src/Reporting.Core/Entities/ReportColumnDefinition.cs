@@ -3,7 +3,7 @@
 
     public class ReportColumnDefinition
     {
-        public required int Position { get; set; } // This is the column order by id that is used in the database system tables
+        public required int ColumnId { get; set; } // This is the column order by id that is used in the database system tables
 
         public required string Name { get; set; }
 

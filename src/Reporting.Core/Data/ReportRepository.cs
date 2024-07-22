@@ -5,14 +5,20 @@
 
     using Dapper;
 
+    using DocumentFormat.OpenXml;
+    using DocumentFormat.OpenXml.Packaging;
+    using DocumentFormat.OpenXml.Spreadsheet;
+
     using Microsoft.Data.SqlClient;
     using Microsoft.Extensions.Logging;
+    using Microsoft.IdentityModel.Tokens;
 
     using Reporting.Core.Contracts;
     using Reporting.Core.Entities;
     using Reporting.Core.Enums;
     using Reporting.Core.Helpers;
     using Reporting.Core.Models;
+    using Reporting.Core.Utilities;
 
     public class ReportRepository : IReportRepository
     {
@@ -162,7 +168,8 @@
                 return report;
             }
         }
-        public async Task<ReportData> ExecuteAsync(ReportSource source, ReportColumnDefinition[] columns, ReportParameter[]? parameters = null)
+
+        public async Task<List<Dictionary<string, object>>> ExecuteAsync(ReportSource source, ReportColumnDefinition[] columns, ReportParameter[]? parameters = null)
         {
             using (var connection = _connectionService.GetConnection())
             {
@@ -178,7 +185,7 @@
                     {
                         var currentValueString = param.CurrentValue?.ToString();
                         _logger.LogInformation("Parameter {Name} = {Value}", param.Name, currentValueString);
-                        dynamicParameters.Add(param.Name, TypeConverters.ConvertSqlValue(param.CurrentValue, param.SqlDataType));
+                        dynamicParameters.Add(param.Name, ObjectHelpers.ConvertSqlValue(param.CurrentValue, param.SqlDataType));
                     }
                 }
 
@@ -186,29 +193,23 @@
                 {
                     var result = await connection.QueryAsync(sql, dynamicParameters, commandType: commandType);
 
-                    var dataList = new List<ReportRowData>();
+                    var dataList = new List<Dictionary<string, object>>();
                     foreach (var row in result)
                     {
-                        var dataRow = new ReportRowData();
+                        var dataRow = new Dictionary<string, object>();
                         var rowDictionary = (IDictionary<string, object>)row;
 
                         foreach (var column in columns)
                         {
                             if (rowDictionary.ContainsKey(column.Name))
                             {
-                                dataRow.ColumnKeys[column.Name] = TypeConverters.ConvertSqlValue(rowDictionary[column.Name], column.SqlDataType) ?? DBNull.Value;
+                                dataRow[column.Name] = ObjectHelpers.ConvertSqlValue(rowDictionary[column.Name], column.SqlDataType) ?? DBNull.Value;
                             }
                         }
                         dataList.Add(dataRow);
                     }
 
-                    var reportData = new ReportData
-                    {
-                        ColumnDefinitions = columns,
-                        Data = dataList
-                    };
-
-                    return reportData;
+                    return dataList;
                 }
                 catch (SqlException ex)
                 {
@@ -217,7 +218,6 @@
                 }
             }
         }
-
 
         public async Task<Report> CreateAsync(Report report)
         {

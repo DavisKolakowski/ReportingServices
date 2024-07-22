@@ -19,11 +19,19 @@
             using (var connection = _connectionService.GetConnection())
             {
                 var sql = @"
+                DECLARE @ObjectName NVARCHAR(128) = PARSENAME(@SqlObjectName, 1);
+                DECLARE @SchemaName NVARCHAR(128) = PARSENAME(@SqlObjectName, 2);
+
                 SELECT 
                     p.parameter_id AS [Position],
                     p.name AS [Name],
+                    CASE 
+                        WHEN p.has_default_value = 1 THEN 
+                            CONVERT(sql_variant, p.default_value)
+                        ELSE NULL
+                    END AS [CurrentValue],
                     t.name AS [SqlDataType],
-                    p.has_default_value AS [HasDefaultValue]
+                    p.has_default_value AS [HasDefaultValue]                    
                 FROM 
                     sys.parameters p
                 JOIN 
@@ -31,7 +39,7 @@
                 JOIN
                     sys.objects o ON p.object_id = o.object_id
                 WHERE 
-                    o.name = PARSENAME(@SqlObjectName, 1) AND o.schema_id = SCHEMA_ID(PARSENAME(@SqlObjectName, 2)) AND o.type IN ('P', 'PC') -- P for procedures, PC for CLR procedures
+                    o.name = @ObjectName AND o.schema_id = SCHEMA_ID(@SchemaName) AND o.type IN ('P', 'PC') -- P for procedures, PC for CLR procedures
                 ORDER BY 
                     p.parameter_id;
                 ";
@@ -51,22 +59,28 @@
                 IF OBJECTPROPERTY(@ObjectId, 'IsProcedure') = 1
                 BEGIN
                     SELECT 
-                        column_ordinal AS [Position],
+                        column_ordinal AS [ColumnId],
                         name AS [Name],
                         system_type_name AS [SqlDataType],
                         is_nullable AS [IsNullable],
-                        0 AS [IsIdentity]
+                        CASE 
+                            WHEN name = 'InternalId' THEN 1 
+                            ELSE 0 
+                        END AS [IsIdentity]
                     FROM 
                         sys.dm_exec_describe_first_result_set_for_object(@ObjectId, NULL);
                 END
                 ELSE
                 BEGIN
                     SELECT 
-                        c.column_id AS [Position],
+                        c.column_id AS [ColumnId],
                         c.name AS [Name],
                         t.name AS [SqlDataType],
                         c.is_nullable AS [IsNullable],
-                        c.is_identity AS [IsIdentity]
+                        CASE 
+                            WHEN c.name = 'InternalId' THEN 1 
+                            ELSE c.is_identity 
+                        END AS [IsIdentity]
                     FROM 
                         sys.columns c
                     JOIN 

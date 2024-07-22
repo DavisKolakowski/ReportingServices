@@ -1,6 +1,6 @@
 ﻿namespace Reporting.Core.Models
 {
-    public class ReportParameterView
+    public class ReportParameterModel
     {
         public int Position { get; set; }
         public string? Name { get; set; }
