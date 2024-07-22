@@ -1,32 +1,30 @@
 ﻿namespace Reporting.Core.Utilities
 {
     using System;
-    using System.Collections.Generic;
+    using System.Data;
+    using System.IO;
     using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
+
+    using DocumentFormat.OpenXml;
     using DocumentFormat.OpenXml.Packaging;
     using DocumentFormat.OpenXml.Spreadsheet;
-    using DocumentFormat.OpenXml;
+
+    using Reporting.Core.Constants;
     using Reporting.Core.Entities;
     using Reporting.Core.Helpers;
-    using System.ComponentModel;
-    using Microsoft.IdentityModel.Tokens;
-    using Reporting.Core.Constants;
     using Reporting.Core.Models;
 
     public static class ReportWorkbookUtility
     {
-        public static byte[] CreateExcelReport(ReportDetailsModel report, ReportDataModel model, Dictionary<string, object>? parameters = null)
+        public static byte[] CreateExcelReport(ReportDetailsModel report, DataTable dataTable)
         {
+            var parameters = report.Parameters;
             var columns = report.ColumnDefinitions.AsEnumerable();
 
-            if (model.Data == null)
+            if (dataTable == null)
             {
-                throw new ArgumentNullException(nameof(model.Data), "Data cannot be null when creating an Excel report.");
+                throw new ArgumentNullException(nameof(dataTable), "Data cannot be null when creating an Excel report.");
             }
-
-            var data = model.Data.Select(row => row).ToList();
 
             using (var memoryStream = new MemoryStream())
             {
@@ -40,7 +38,7 @@
                     AddIndexSheetContent(indexSheetData, report, parameters);
 
                     var dataSheetData = CreateSheet(spreadsheetDocument, workbookPart, sheets, "Data", 2);
-                    AddDataSheetContent(dataSheetData, columns, data);
+                    AddDataSheetContent(workbookPart, dataSheetData, columns, dataTable);
 
                     workbookPart.Workbook.Save();
                 }
@@ -66,22 +64,12 @@
             return sheetData;
         }
 
-        private static void AddIndexSheetContent(SheetData sheetData, ReportDetailsModel report, Dictionary<string, object>? parameters)
+        private static void AddIndexSheetContent(SheetData sheetData, ReportDetailsModel report, ReportParameterModel[]? parameters)
         {
-            var reportName = report.Name;
-            if (string.IsNullOrEmpty(reportName))
-            {
-                throw new ArgumentNullException(nameof(reportName), "Report name cannot be null or empty.");
-            }
-            var reportDescription = report.Description;
-            if (string.IsNullOrEmpty(reportDescription))
-            {
-                reportDescription = "No description provided.";
-            }
             AddTextCell(sheetData, "A1", "Report Name");
-            AddTextCell(sheetData, "B1", reportName);
+            AddTextCell(sheetData, "B1", report.Name ?? string.Empty);
             AddTextCell(sheetData, "A2", "Report Description");
-            AddTextCell(sheetData, "B2", reportDescription);
+            AddTextCell(sheetData, "B2", report.Description ?? "No description provided.");
             AddTextCell(sheetData, "A3", "Execution Date");
             AddTextCell(sheetData, "B3", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
 
@@ -91,59 +79,78 @@
                 int rowIndex = 5;
                 foreach (var param in parameters)
                 {
-                    AddTextCell(sheetData, $"A{rowIndex}", param.Key);
-                    AddTextCell(sheetData, $"B{rowIndex}", param.Value?.ToString() ?? string.Empty);
+                    AddTextCell(sheetData, $"A{rowIndex}", param.Name ?? string.Empty);
+                    AddTextCell(sheetData, $"B{rowIndex}", param.CurrentValue?.ToString() ?? string.Empty);
                     rowIndex++;
                 }
             }
         }
 
-        private static void AddDataSheetContent(SheetData sheetData, IEnumerable<ReportColumnDefinitionModel> columns, IEnumerable<Dictionary<string, object>> data)
+        private static void AddDataSheetContent(WorkbookPart workbookPart, SheetData sheetData, IEnumerable<ReportColumnDefinitionModel> columns, DataTable dataTable)
         {
-            if (columns == null)
-            {
-                throw new ArgumentNullException(nameof(columns), "Columns cannot be null when creating an Excel report.");
-            }
-
             var filteredColumns = columns.Where(column => column.Name != GridSettings.RowIdentifierKey).ToList();
 
             var headerRow = new Row();
             foreach (var column in filteredColumns)
             {
-                if (string.IsNullOrEmpty(column.Name))
-                {
-                    throw new ArgumentNullException(nameof(column.Name), "Column name cannot be null or empty.");
-                }
-
                 var cell = new Cell
                 {
                     CellValue = new CellValue(column.Name),
-                    DataType = CellValues.String
+                    DataType = CellValues.String,
+                    StyleIndex = 1
                 };
-
                 headerRow.AppendChild(cell);
             }
             sheetData.AppendChild(headerRow);
 
-            foreach (var row in data)
+            foreach (DataRow dataRow in dataTable.Rows)
             {
-                var dataRow = new Row();
+                var row = new Row();
                 foreach (var column in filteredColumns)
                 {
-                    if (string.IsNullOrEmpty(column.Name))
-                    {
-                        throw new ArgumentNullException(nameof(column.Name), "Column name cannot be null or empty.");
-                    }
-                    if (string.IsNullOrEmpty(column.SqlDataType))
-                    {
-                        throw new ArgumentNullException(nameof(column.SqlDataType), "Column SQL data type cannot be null or empty.");
-                    }
-                    var cellValue = row.TryGetValue(column.Name, out var value) ? value : null;
+                    var cellValue = dataRow[column.Name] ?? DBNull.Value;
                     var cell = ObjectHelpers.CreateCell(cellValue, column.SqlDataType);
-                    dataRow.AppendChild(cell);
+                    row.AppendChild(cell);
                 }
-                sheetData.AppendChild(dataRow);
+                sheetData.AppendChild(row);
             }
+
+            // Create table
+            CreateTable(workbookPart, sheetData, filteredColumns, (uint)dataTable.Rows.Count + 1);
+        }
+
+        private static void CreateTable(WorkbookPart workbookPart, SheetData sheetData, List<ReportColumnDefinitionModel> columns, uint rowCount)
+        {
+            var worksheet = sheetData.Parent as Worksheet;
+            if (worksheet == null) return;
+
+            var tableDefinitionPart = worksheet.WorksheetPart.AddNewPart<TableDefinitionPart>();
+            var table = new Table
+            {
+                Id = 1,
+                Name = "DataTable",
+                DisplayName = "DataTable",
+                Reference = $"A1:{(char)('A' + columns.Count - 1)}{rowCount}",
+                TotalsRowShown = false,
+                AutoFilter = new AutoFilter { Reference = $"A1:{(char)('A' + columns.Count - 1)}{rowCount}" }
+            };
+
+            var tableColumns = new TableColumns { Count = (uint)columns.Count };
+            for (int i = 0; i < columns.Count; i++)
+            {
+                var tableColumn = new TableColumn
+                {
+                    Id = (uint)(i + 1),
+                    Name = columns[i].Name
+                };
+                tableColumns.Append(tableColumn);
+            }
+            table.Append(tableColumns);
+
+            tableDefinitionPart.Table = table;
+            tableDefinitionPart.Table.Save();
+
+            worksheet.Save();
         }
 
         private static void AddTextCell(SheetData sheetData, string cellReference, string text)

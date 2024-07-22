@@ -1,5 +1,7 @@
 ﻿namespace Reporting.Core.Services
 {
+    using System.Data;
+
     using DocumentFormat.OpenXml.Bibliography;
 
     using Microsoft.Extensions.Logging;
@@ -7,6 +9,7 @@
 
     using Reporting.Core.Contracts;
     using Reporting.Core.Entities;
+    using Reporting.Core.Extensions;
     using Reporting.Core.Helpers;
     using Reporting.Core.Models;
     using Reporting.Core.Utilities;
@@ -172,7 +175,7 @@
             await _reportRepository.DeleteAsync(existingReport);
         }
 
-        public async Task<ReportDataModel> GetReportDataGridAsync(ReportDetailsModel report)
+        public async Task<IEnumerable<Dictionary<string, object>>> GetReportDataAsTableAsync(ReportDetailsModel report)
         {
             if (string.IsNullOrWhiteSpace(report.Key))
             {
@@ -196,12 +199,11 @@
                 throw new InvalidOperationException($"Report column definitions do not match for report '{report.Key}'");
             }
 
+            var dataTable = new DataTable();
             if (!report.HasParameters)
             {
-                return new ReportDataModel
-                {
-                    Data = await _reportRepository.ExecuteAsync(reportSource, reportColumnsArray)
-                };
+                dataTable = await _reportRepository.ExecuteAsync(reportSource, reportColumnsArray);
+                return dataTable.ToDictionaryList();
             }
 
             var reportParameters = await _systemRepository.GetReportParametersAsync(reportSource.FullName);
@@ -230,10 +232,8 @@
 
             var reportParametersArray = reportParameters.ToArray();
 
-            return new ReportDataModel
-            {
-                Data = await _reportRepository.ExecuteAsync(reportSource, reportColumnsArray, reportParametersArray)
-            };
+            dataTable = await _reportRepository.ExecuteAsync(reportSource, reportColumnsArray, reportParametersArray);
+            return dataTable.ToDictionaryList();
         }
 
         public async Task<byte[]> GetReportDataAsBytesAsync(ReportDetailsModel report)
@@ -277,11 +277,11 @@
                 throw new InvalidOperationException($"Report column definitions do not match for report '{report.Key}'");
             }
 
-            var reportDataModel = new ReportDataModel();
+            var reportDataModel = new DataTable();
 
             if (!report.HasParameters)
             {
-                reportDataModel.Data = await _reportRepository.ExecuteAsync(reportSource, reportColumnsArray);
+                reportDataModel = await _reportRepository.ExecuteAsync(reportSource, reportColumnsArray);
                 return ReportWorkbookUtility.CreateExcelReport(report, reportDataModel);
             }
 
@@ -311,7 +311,7 @@
 
             var reportParametersArray = reportParameters.ToArray();
 
-            reportDataModel.Data = await _reportRepository.ExecuteAsync(reportSource, reportColumnsArray, reportParametersArray);
+            reportDataModel = await _reportRepository.ExecuteAsync(reportSource, reportColumnsArray, reportParametersArray);
             return ReportWorkbookUtility.CreateExcelReport(report, reportDataModel);
         }
     }

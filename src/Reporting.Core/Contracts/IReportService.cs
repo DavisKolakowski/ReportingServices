@@ -1,5 +1,7 @@
 ﻿namespace Reporting.Core.Contracts
 {
+    using System.Data;
+
     using Reporting.Core.Entities;
     using Reporting.Core.Models;
 
@@ -16,7 +18,7 @@
         Task ActivateReportAsync(ActivateReportModel report);
         Task DisableReportAsync(DisableReportModel report);
         Task DeleteReportAsync(DeleteReportModel report);
-        Task<ReportDataModel> GetReportDataGridAsync(ReportDetailsModel report);
+        Task<IEnumerable<Dictionary<string, object>>> GetReportDataAsTableAsync(ReportDetailsModel report);
         Task<byte[]> GetReportDataAsBytesAsync(ReportDetailsModel report);
     }
 }

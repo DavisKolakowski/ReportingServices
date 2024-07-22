@@ -1,6 +1,7 @@
 ﻿namespace Reporting.Core.Helpers
 {
     using System;
+    using System.Data;
     using System.Text.Json;
     using DocumentFormat.OpenXml.Spreadsheet;
 
@@ -66,6 +67,42 @@
                 Guid guidValue => new Cell() { CellValue = new CellValue(guidValue.ToString()), DataType = CellValues.String },
                 TimeSpan timeSpanValue => new Cell() { CellValue = new CellValue(timeSpanValue.ToString()), DataType = CellValues.String },
                 _ => new Cell() { CellValue = new CellValue(cellValue?.ToString() ?? string.Empty), DataType = CellValues.String }
+            };
+        }
+
+        public static Type GetCSharpTypeForSqlTypeString(string sqlType)
+        {
+            return sqlType.ToLower() switch
+            {
+                "bigint" => typeof(long),
+                "binary" => typeof(byte[]),
+                "bit" => typeof(bool),
+                "char" => typeof(string),
+                "date" => typeof(DateTime),
+                "datetime" => typeof(DateTime),
+                "datetime2" => typeof(DateTime),
+                "datetimeoffset" => typeof(DateTimeOffset),
+                "decimal" => typeof(decimal),
+                "float" => typeof(double),
+                "image" => typeof(byte[]),
+                "int" => typeof(int),
+                "money" => typeof(decimal),
+                "nchar" => typeof(string),
+                "ntext" => typeof(string),
+                "numeric" => typeof(decimal),
+                "nvarchar" => typeof(string),
+                "real" => typeof(float),
+                "smalldatetime" => typeof(DateTime),
+                "smallint" => typeof(short),
+                "smallmoney" => typeof(decimal),
+                "text" => typeof(string),
+                "time" => typeof(TimeSpan),
+                "timestamp" => typeof(byte[]),
+                "tinyint" => typeof(byte),
+                "uniqueidentifier" => typeof(Guid),
+                "varbinary" => typeof(byte[]),
+                "varchar" => typeof(string),
+                _ => typeof(object),
             };
         }
 

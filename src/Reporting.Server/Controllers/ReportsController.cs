@@ -84,11 +84,12 @@ namespace Reporting.Server.Controllers
                 return BadRequest(ModelState);
             }
 
-            var data = await _reportService.GetReportDataGridAsync(executeReportModel);
+            var data = await _reportService.GetReportDataAsTableAsync(executeReportModel);
 
-            var response = new ExecuteReportResponse(data)
+            var response = new ExecuteReportResponse()
             {
                 Model = executeReportModel,
+                Data = data
             };
 
             return Ok(response);

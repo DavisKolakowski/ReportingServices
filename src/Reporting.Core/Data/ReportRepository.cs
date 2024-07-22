@@ -169,7 +169,7 @@
             }
         }
 
-        public async Task<List<Dictionary<string, object>>> ExecuteAsync(ReportSource source, ReportColumnDefinition[] columns, ReportParameter[]? parameters = null)
+        public async Task<DataTable> ExecuteAsync(ReportSource source, ReportColumnDefinition[] columns, ReportParameter[]? parameters = null)
         {
             using (var connection = _connectionService.GetConnection())
             {
@@ -178,38 +178,23 @@
 
                 _logger.LogInformation("Executing report with SQL: {Sql}, CommandType: {CommandType}", sql, commandType);
 
-                var dynamicParameters = new DynamicParameters();
-                if (parameters != null)
-                {
-                    foreach (var param in parameters)
-                    {
-                        var currentValueString = param.CurrentValue?.ToString();
-                        _logger.LogInformation("Parameter {Name} = {Value}", param.Name, currentValueString);
-                        dynamicParameters.Add(param.Name, ObjectHelpers.ConvertSqlValue(param.CurrentValue, param.SqlDataType));
-                    }
-                }
+                var dynamicParameters = CreateDynamicParameters(parameters);
 
                 try
                 {
-                    var result = await connection.QueryAsync(sql, dynamicParameters, commandType: commandType);
+                    var dataTable = new DataTable();
 
-                    var dataList = new List<Dictionary<string, object>>();
-                    foreach (var row in result)
+                    foreach (var column in columns)
                     {
-                        var dataRow = new Dictionary<string, object>();
-                        var rowDictionary = (IDictionary<string, object>)row;
-
-                        foreach (var column in columns)
-                        {
-                            if (rowDictionary.ContainsKey(column.Name))
-                            {
-                                dataRow[column.Name] = ObjectHelpers.ConvertSqlValue(rowDictionary[column.Name], column.SqlDataType) ?? DBNull.Value;
-                            }
-                        }
-                        dataList.Add(dataRow);
+                        dataTable.Columns.Add(column.Name, ObjectHelpers.GetCSharpTypeForSqlTypeString(column.SqlDataType));
                     }
 
-                    return dataList;
+                    using (var reader = await connection.ExecuteReaderAsync(sql, dynamicParameters, commandType: commandType))
+                    {
+                        dataTable.Load(reader);
+                    }
+
+                    return dataTable;
                 }
                 catch (SqlException ex)
                 {
@@ -217,6 +202,22 @@
                     throw;
                 }
             }
+        }
+
+        private DynamicParameters CreateDynamicParameters(ReportParameter[]? parameters)
+        {
+            var dynamicParameters = new DynamicParameters();
+            if (parameters != null)
+            {
+                foreach (var param in parameters)
+                {
+                    var currentValueString = param.CurrentValue?.ToString();
+                    _logger.LogInformation("Parameter {Name} = {Value}", param.Name, currentValueString);
+                    dynamicParameters.Add(param.Name, ObjectHelpers.ConvertSqlValue(param.CurrentValue, param.SqlDataType));
+                }
+            }
+
+            return dynamicParameters;
         }
 
         public async Task<Report> CreateAsync(Report report)
