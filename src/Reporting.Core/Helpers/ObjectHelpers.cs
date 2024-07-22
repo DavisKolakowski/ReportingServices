@@ -3,11 +3,13 @@
     using System;
     using System.Data;
     using System.Text.Json;
+    using ClosedXML.Excel;
+
     using DocumentFormat.OpenXml.Spreadsheet;
 
     public static class ObjectHelpers
     {
-        public static object? ConvertSqlValue(object? value, string sqlDataType)
+        public static object? ConvertFromSqlValue(object? value, string sqlDataType)
         {
             if (value == null)
             {
@@ -46,27 +48,6 @@
                 "image" => convertedValue is byte[] imgBytes ? imgBytes : Array.Empty<byte>(),
                 "uniqueidentifier" => Guid.TryParse(convertedValue?.ToString(), out var guidResult) ? guidResult : Guid.Empty,
                 _ => convertedValue
-            };
-        }
-
-        public static Cell CreateCell(object? value, string sqlDataType)
-        {
-            if (value == null)
-            {
-                return new Cell() { CellValue = new CellValue(string.Empty), DataType = CellValues.String };
-            }
-
-            var cellValue = ConvertSqlValue(value, sqlDataType);
-            return cellValue switch
-            {
-                string stringValue => new Cell() { CellValue = new CellValue(stringValue), DataType = CellValues.String },
-                int intValue => new Cell() { CellValue = new CellValue(intValue.ToString()), DataType = CellValues.Number },
-                double doubleValue => new Cell() { CellValue = new CellValue(doubleValue.ToString()), DataType = CellValues.Number },
-                bool boolValue => new Cell() { CellValue = new CellValue(boolValue ? "1" : "0"), DataType = CellValues.Boolean },
-                DateTime dateTimeValue => new Cell() { CellValue = new CellValue(dateTimeValue.ToOADate().ToString()), DataType = CellValues.Date },
-                Guid guidValue => new Cell() { CellValue = new CellValue(guidValue.ToString()), DataType = CellValues.String },
-                TimeSpan timeSpanValue => new Cell() { CellValue = new CellValue(timeSpanValue.ToString()), DataType = CellValues.String },
-                _ => new Cell() { CellValue = new CellValue(cellValue?.ToString() ?? string.Empty), DataType = CellValues.String }
             };
         }
 

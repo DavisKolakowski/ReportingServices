@@ -11,7 +11,7 @@
         public object? CurrentValue
         {
             get => _currentValue;
-            set => _currentValue = ObjectHelpers.ConvertSqlValue(value ?? new { }, SqlDataType);
+            set => _currentValue = ObjectHelpers.ConvertFromSqlValue(value ?? new { }, SqlDataType);
         }
 
         public required string SqlDataType { get; set; }
