@@ -1,17 +1,20 @@
 ### Get all reports
-GET https://localhost:5001/api/reports/all
+GET https://localhost:5001/api/v1/admin/reporting/all-reports
 
 ### Get all active reports
-GET https://localhost:5001/api/reports/active
+GET https://localhost:5001/api/v1/reporting/active-reports
 
-### Get all available report sources
-GET https://localhost:5001/api/reports/sources/available
+### Get all available report sources for new report
+GET https://localhost:5001/api/v1/admin/reporting/new-report/available-report-sources
 
-### Get report details by key
-GET https://localhost:5001/api/reports/{key}
+### Get report details by key for user
+GET https://localhost:5001/api/v1/reporting/report/{key}
+
+### Get report details by key for admin
+GET https://localhost:5001/api/v1/admin/reporting/report/{key}
 
 ### Create a new report
-POST https://localhost:5001/api/reports
+POST https://localhost:5001/api/v1/admin/reporting/new-report
 Content-Type: application/json
 
 {
@@ -27,7 +30,7 @@ Content-Type: application/json
 }
 
 ### Update a report
-PUT https://localhost:5001/api/reports
+PUT https://localhost:5001/api/v1/admin/reporting/update-report
 Content-Type: application/json
 
 {
@@ -41,7 +44,7 @@ Content-Type: application/json
 }
 
 ### Activate a report
-PUT https://localhost:5001/api/reports/activate
+PUT https://localhost:5001/api/v1/admin/reporting/activate-report
 Content-Type: application/json
 
 {
@@ -52,7 +55,7 @@ Content-Type: application/json
 }
 
 ### Disable a report
-PUT https://localhost:5001/api/reports/disable
+PUT https://localhost:5001/api/v1/admin/reporting/deactivate-report
 Content-Type: application/json
 
 {
@@ -63,7 +66,7 @@ Content-Type: application/json
 }
 
 ### Delete a report
-DELETE https://localhost:5001/api/reports
+DELETE https://localhost:5001/api/v1/admin/reporting/remove-report
 Content-Type: application/json
 
 {
@@ -73,7 +76,7 @@ Content-Type: application/json
 }
 
 ### Execute a report
-POST https://localhost:5001/api/reports/execute
+POST https://localhost:5001/api/v1/reporting/data
 Content-Type: application/json
 
 {
@@ -85,3 +88,18 @@ Content-Type: application/json
     }
   }
 }
+
+### Download a report
+POST https://localhost:5001/api/v1/reporting/file
+Content-Type: application/json
+
+{
+  "model": {
+    "key": "report_key",
+    "parameters": {
+      "param1": "value1",
+      "param2": "value2"
+    }
+  }
+}
+
