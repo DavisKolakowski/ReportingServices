@@ -12,7 +12,9 @@
         Task<IEnumerable<ReportSource>> GetAllAvailableReportSourcesAsync();
         Task<Report?> GetReportByKeyAsync(string reportKey);
         Task<Report?> GetReportDetailsAsync(string reportKey);
-        Task<IEnumerable<ReportSourceHistory>> GetReportActivityAsync(string reportKey);
+        Task<ReportSource> GetReportSourceAsync(Report report);
+        Task<ReportSource> GetReportSourceByIdAsync(int reportSourceId);
+        Task<IEnumerable<ReportSourceHistory>> GetReportSourceActivityLogAsync(string sqlObjectName);
         Task<Report> CreateReportAsync(NewReportModel report);
         Task<Report> UpdateReportAsync(UpdateReportModel report);
         Task ActivateReportAsync(ActivateReportModel report);

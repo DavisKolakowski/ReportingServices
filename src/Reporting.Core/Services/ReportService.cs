@@ -81,12 +81,12 @@
             return report;
         }
 
-        public async Task<IEnumerable<ReportSourceHistory>> GetReportActivityAsync(string reportKey)
+        public async Task<ReportSource> GetReportSourceAsync(Report report)
         {
-            var report = await GetReportByKeyAsync(reportKey);
             if (report == null)
             {
-                return Enumerable.Empty<ReportSourceHistory>();
+                _logger.LogWarning($"Invalid report provided.");
+                throw new KeyNotFoundException($"Report is invalid or not provided.");
             }
 
             var reportSource = await _reportSourceRepository.GetByIdAsync(report.ReportSourceId);
@@ -95,8 +95,29 @@
                 _logger.LogError($"Report source not found for report '{report.Key}'");
                 throw new InvalidOperationException($"Report source not found for report '{report.Key}'");
             }
+            return reportSource;
+        }
 
-            return await _reportSourceRepository.GetActivityHistoryAsync(reportSource.FullName);
+        public async Task<ReportSource> GetReportSourceByIdAsync(int reportSourceId)
+        {
+            var reportSource = await _reportSourceRepository.GetByIdAsync(reportSourceId);
+            if (reportSource == null)
+            {
+                _logger.LogError($"Report source not found for report source id '{reportSourceId}'");
+                throw new InvalidOperationException($"Report source not found for report source id '{reportSourceId}'");
+            }
+            return reportSource;
+        }
+
+        public async Task<IEnumerable<ReportSourceHistory>> GetReportSourceActivityLogAsync(string sqlObjectName)
+        {
+            var reportSourceHistory = await _reportSourceRepository.GetActivityHistoryAsync(sqlObjectName);
+            if (reportSourceHistory == null)
+            {
+                _logger.LogError($"Report source not found for report source '{sqlObjectName}'");
+                throw new InvalidOperationException($"Report source not found for report source '{sqlObjectName}'");
+            }
+            return reportSourceHistory;
         }
 
         public async Task<Report> CreateReportAsync(NewReportModel newReport)
