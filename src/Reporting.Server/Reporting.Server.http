@@ -1,82 +1,11 @@
-### Get all reports
-GET https://localhost:5001/api/v1/admin/reporting/all-reports
-
 ### Get all active reports
 GET https://localhost:5001/api/v1/reporting/active-reports
 
-### Get all available report sources for new report
-GET https://localhost:5001/api/v1/admin/reporting/new-report/available-report-sources
-
-### Get report details by key for user
-GET https://localhost:5001/api/v1/reporting/report/{key}
-
-### Get report details by key for admin
-GET https://localhost:5001/api/v1/admin/reporting/report/{key}
-
-### Create a new report
-POST https://localhost:5001/api/v1/admin/reporting/new-report
-Content-Type: application/json
-
-{
-  "model": {
-    "key": "report_key",
-    "reportSourceId": 1,
-    "name": "Report Name",
-    "description": "Report Description",
-    "isActive": true,
-    "hasParameters": false,
-    "createdByUser": "username"
-  }
-}
-
-### Update a report
-PUT https://localhost:5001/api/v1/admin/reporting/update-report
-Content-Type: application/json
-
-{
-  "model": {
-    "key": "report_key",
-    "name": "Updated Report Name",
-    "description": "Updated Report Description",
-    "isActive": true,
-    "updatedByUser": "username"
-  }
-}
-
-### Activate a report
-PUT https://localhost:5001/api/v1/admin/reporting/activate-report
-Content-Type: application/json
-
-{
-  "model": {
-    "key": "report_key",
-    "updatedByUser": "username"
-  }
-}
-
-### Disable a report
-PUT https://localhost:5001/api/v1/admin/reporting/deactivate-report
-Content-Type: application/json
-
-{
-  "model": {
-    "key": "report_key",
-    "updatedByUser": "username"
-  }
-}
-
-### Delete a report
-DELETE https://localhost:5001/api/v1/admin/reporting/remove-report
-Content-Type: application/json
-
-{
-  "model": {
-    "key": "report_key"
-  }
-}
+### Get report details by key
+GET https://localhost:5001/api/v1/reporting/report/{{key}}
 
 ### Execute a report
-POST https://localhost:5001/api/v1/reporting/data
+POST https://localhost:5001/api/v1/reporting/report/data
 Content-Type: application/json
 
 {
@@ -90,7 +19,7 @@ Content-Type: application/json
 }
 
 ### Download a report
-POST https://localhost:5001/api/v1/reporting/file
+POST https://localhost:5001/api/v1/reporting/report/file
 Content-Type: application/json
 
 {
@@ -103,3 +32,81 @@ Content-Type: application/json
   }
 }
 
+### Get all reports
+GET https://localhost:5001/api/v1/admin/reporting/all-reports
+
+### Get report details for admin by key
+GET https://localhost:5001/api/v1/admin/reporting/report/{{key}}
+
+### Get report source details by ID
+GET https://localhost:5001/api/v1/admin/reporting/report-source/{{id}}
+
+### Get all available report sources for new report
+GET https://localhost:5001/api/v1/admin/reporting/report/unused-report-sources
+
+### Create a new report
+POST https://localhost:5001/api/v1/admin/reporting/report
+Content-Type: application/json
+
+{
+  "model": {
+    "key": "report_key",
+    "reportSourceId": 1,
+    "name": "Report Name",
+    "description": "Report Description",
+    "isActive": true,
+    "hasParameters": false,
+    "createdByUser": "username",
+    "createdAtDate": "2023-07-22T14:00:00Z"
+  }
+}
+
+### Update a report
+PUT https://localhost:5001/api/v1/admin/reporting/report
+Content-Type: application/json
+
+{
+  "model": {
+    "key": "report_key",
+    "name": "Updated Report Name",
+    "description": "Updated Report Description",
+    "isActive": true,
+    "hasParameters": false,
+    "updatedByUser": "username",
+    "updatedAtDate": "2023-07-22T14:00:00Z"
+  }
+}
+
+### Activate a report
+PUT https://localhost:5001/api/v1/admin/reporting/report/activation
+Content-Type: application/json
+
+{
+  "model": {
+    "key": "report_key",
+    "updatedByUser": "username",
+    "updatedAtDate": "2023-07-22T14:00:00Z"
+  }
+}
+
+### Disable a report
+PUT https://localhost:5001/api/v1/admin/reporting/report/deactivation
+Content-Type: application/json
+
+{
+  "model": {
+    "key": "report_key",
+    "updatedByUser": "username",
+    "updatedAtDate": "2023-07-22T14:00:00Z"
+  }
+}
+
+### Delete a report
+DELETE https://localhost:5001/api/v1/admin/reporting/report
+Content-Type: application/json
+
+{
+  "model": {
+    "key": "report_key"
+  }
+}
