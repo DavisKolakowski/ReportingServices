@@ -12,8 +12,8 @@
             {
                 public const string GetAllActiveReports = Base + "/reporting/active-reports";
                 public const string GetReportDetailsForUser = Base + "/reporting/report/{key}";
-                public const string ExecuteReport = Base + "/reporting/data";
-                public const string DownloadReport = Base + "/reporting/file";
+                public const string ExecuteReport = Base + "/reporting/report/data";
+                public const string DownloadReport = Base + "/reporting/report/file";
             }
 
             public static class Admin
@@ -24,12 +24,12 @@
                     public const string GetAllReports = AdminBase + "/reporting/all-reports";
                     public const string GetReportDetailsForAdmin = AdminBase + "/reporting/report/{key}";
                     public const string GetReportSourceDetails = AdminBase + "/reporting/report-source/{id}";
-                    public const string GetAvailableReportSourcesForNewReport = AdminBase + "/reporting/new-report/available-report-sources";
-                    public const string NewReport = AdminBase + "/reporting/new-report";
-                    public const string UpdateReport = AdminBase + "/reporting/update-report";
-                    public const string ActivateReport = AdminBase + "/reporting/activate-report";
-                    public const string DeactivateReport = AdminBase + "/reporting/deactivate-report";
-                    public const string DeleteReport = AdminBase + "/reporting/remove-report";
+                    public const string GetAvailableReportSourcesForNewReport = AdminBase + "/reporting/report/unused-report-sources";
+                    public const string NewReport = AdminBase + "/reporting/report";
+                    public const string UpdateReport = AdminBase + "/reporting/report";
+                    public const string ActivateReport = AdminBase + "/reporting/report/activation";
+                    public const string DeactivateReport = AdminBase + "/reporting/report/deactivation";
+                    public const string DeleteReport = AdminBase + "/reporting/report";
                 }
             }
         }
