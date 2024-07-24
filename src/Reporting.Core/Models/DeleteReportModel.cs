@@ -6,6 +6,6 @@
     {
         [Required]
         [RegularExpression(@"^[a-z0-9_]+$", ErrorMessage = "Key can only contain lowercase letters, numbers, and underscores.")]
-        public required string Key { get; set; }
+        public string? Key { get; set; }
     }
 }

@@ -3,11 +3,11 @@
 
     public class ReportColumnDefinition
     {
-        public required int ColumnId { get; set; } // This is the column order by id that is used in the database system tables
+        public int ColumnId { get; set; } // This is the column order by id that is used in the database system tables
 
-        public required string Name { get; set; }
+        public string? Name { get; set; }
 
-        public required string SqlDataType { get; set; }
+        public string? SqlDataType { get; set; }
 
         public bool IsNullable { get; set; }
 

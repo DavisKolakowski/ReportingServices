@@ -1,4 +1,4 @@
-﻿namespace Reporting.Core.Constants
+﻿namespace Reporting.Server.Constants
 {
     public static class ApiRoutes
     {
@@ -7,6 +7,7 @@
         public static class V1
         {
             private const string Base = Root + "/v1";
+	    private const string AdminBase = Base + "/admin";
 
             public static class Reporting
             {
@@ -14,13 +15,9 @@
                 public const string GetReportDetailsForUser = Base + "/reporting/report/{key}";
                 public const string ExecuteReport = Base + "/reporting/report/data";
                 public const string DownloadReport = Base + "/reporting/report/file";
-            }
 
-            public static class Admin
-            {
-                private const string AdminBase = Base + "/admin";
-                public static class Reporting
-                {
+            	public static class Admin
+            	{             
                     public const string GetAllReports = AdminBase + "/reporting/all-reports";
                     public const string GetReportDetailsForAdmin = AdminBase + "/reporting/report/{key}";
                     public const string GetReportSourceDetails = AdminBase + "/reporting/report-source/{id}";
@@ -30,7 +27,7 @@
                     public const string ActivateReport = AdminBase + "/reporting/report/activation";
                     public const string DeactivateReport = AdminBase + "/reporting/report/deactivation";
                     public const string DeleteReport = AdminBase + "/reporting/report";
-                }
+            	}
             }
         }
     }

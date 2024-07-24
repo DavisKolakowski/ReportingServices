@@ -2,6 +2,6 @@
 {
     public class ExecuteReportRequest
     {
-        public required ReportDetailsModel Model { get; set; }
+        public ReportDetailsModel Model { get; set; } = new ReportDetailsModel();
     }
 }

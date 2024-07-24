@@ -1,8 +1,17 @@
-
 namespace Reporting.Server
 {
+    using System.Diagnostics.Contracts;
+    using System.Security.Claims;
+
+    using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
+
+    using Microsoft.AspNetCore.Authentication.JwtBearer;
+    using Microsoft.AspNetCore.Builder;
+    using Microsoft.OpenApi.Models;
+
     using Reporting.Core.Contracts;
     using Reporting.Core.Data;
+    using Reporting.Core.Extensions;
     using Reporting.Core.Services;
 
     public class Program
@@ -14,11 +23,13 @@ namespace Reporting.Server
             // Add services to the container.
 
             builder.Services.AddControllers();
-            builder.Services.AddScoped<IReportService, ReportService>();
-            builder.Services.AddScoped<IReportRepository, ReportRepository>();
-            builder.Services.AddScoped<IReportSourceRepository, ReportSourceRepository>();
-            builder.Services.AddScoped<ISystemRepository, SystemRepository>();
-            builder.Services.AddScoped<IDapperConnectionService, DapperConnectionService>();
+            var reportingDbConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+            if (string.IsNullOrWhiteSpace(reportingDbConnectionString))
+            {
+                throw new System.Exception("Connection string is missing");
+            }
+            builder.Services.AddReportingServices(reportingDbConnectionString);
+
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 

@@ -9,13 +9,13 @@
 
     public class ReportSourceModel
     {
-        public required int Id { get; set; }
-        public required ReportSourceType Type { get; set; }
-        public required string Schema { get; set; }
-        public required string Name { get; set; }
+        public int Id { get; set; }
+        public ReportSourceType Type { get; set; }
+        public string? Schema { get; set; }
+        public string? Name { get; set; }
         public string FullName => $"{Schema}.{Name}";
-        public required ActivityType LastActivityType { get; set; }
-        public required string LastActivityByUser { get; set; }
-        public required DateTime LastActivityDate { get; set; }
+        public ActivityType LastActivityType { get; set; }
+        public string? LastActivityByUser { get; set; }
+        public DateTime LastActivityDate { get; set; }
     }
 }

@@ -4,8 +4,8 @@
 
     public class ReportParameter
     {
-        public required int Position { get; set; }
-        public required string Name { get; set; }
+        public int Position { get; set; }
+        public string? Name { get; set; }
 
         private object? _currentValue;
         public object? CurrentValue
@@ -14,7 +14,7 @@
             set => _currentValue = ObjectHelpers.ConvertFromSqlValue(value ?? new { }, SqlDataType);
         }
 
-        public required string SqlDataType { get; set; }
+        public string? SqlDataType { get; set; }
         public bool HasDefaultValue { get; set; }
     }
 }

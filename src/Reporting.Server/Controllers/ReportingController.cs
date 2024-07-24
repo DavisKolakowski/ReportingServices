@@ -1,12 +1,13 @@
 namespace Reporting.Server.Controllers
 {
     using Microsoft.AspNetCore.Mvc;
-    using Reporting.Core.Constants;
+    using Reporting.Server.Constants;
     using Reporting.Core.Contracts;
     using Reporting.Core.Models;
     using Microsoft.Extensions.Logging;
     using System.Linq;
     using System.Threading.Tasks;
+    using Microsoft.AspNetCore.Authorization;
 
     [ApiController]
     public class ReportingController : ControllerBase
@@ -37,8 +38,8 @@ namespace Reporting.Server.Controllers
                 HasParameters = r.HasParameters,
                 CreatedByUser = r.CreatedByUser,
                 CreatedAtDate = r.CreatedAtDate,
-                LastUpdatedByUser = r.UpdatedByUser ?? null,
-                LastUpdatedAtDate = r.UpdatedAtDate ?? null
+                LastUpdatedByUser = r.UpdatedByUser,
+                LastUpdatedAtDate = r.UpdatedAtDate
             });
             var activeReportsResponse = new ActiveReportsResponse
             {
@@ -76,7 +77,7 @@ namespace Reporting.Server.Controllers
                     Name = p.Name,
                     SqlDataType = p.SqlDataType,
                     HasDefaultValue = p.HasDefaultValue
-                }).ToArray(),
+                }),
                 ColumnDefinitions = report.ColumnDefinitions.Select(c => new ReportColumnDefinitionModel
                 {
                     ColumnId = c.ColumnId,
@@ -84,11 +85,11 @@ namespace Reporting.Server.Controllers
                     SqlDataType = c.SqlDataType,
                     IsNullable = c.IsNullable,
                     IsIdentity = c.IsIdentity
-                }).ToArray(),
+                }),
                 CreatedByUser = report.CreatedByUser,
                 CreatedAtDate = report.CreatedAtDate,
-                LastUpdatedByUser = report.UpdatedByUser ?? null,
-                LastUpdatedAtDate = report.UpdatedAtDate ?? null,
+                LastUpdatedByUser = report.UpdatedByUser,
+                LastUpdatedAtDate = report.UpdatedAtDate,
             };
             var reportDetailsResponse = new ReportDetailsResponse
             {
@@ -149,7 +150,7 @@ namespace Reporting.Server.Controllers
         /// Get all reports.
         /// </summary>
         /// <returns>A list of reports.</returns>
-        [HttpGet(ApiRoutes.V1.Admin.Reporting.GetAllReports)]
+        [HttpGet(ApiRoutes.V1.Reporting.Admin.GetAllReports)]
         public async Task<ActionResult<AllReportsResponse>> GetAllReports()
         {
             _logger.LogInformation("Getting all reports.");
@@ -163,8 +164,8 @@ namespace Reporting.Server.Controllers
                 IsActive = r.IsActive,
                 CreatedByUser = r.CreatedByUser,
                 CreatedAtDate = r.CreatedAtDate,
-                LastUpdatedByUser = r.UpdatedByUser ?? null,
-                LastUpdatedAtDate = r.UpdatedAtDate ?? null
+                LastUpdatedByUser = r.UpdatedByUser,
+                LastUpdatedAtDate = r.UpdatedAtDate
             });
             var activeReportsResponse = new AllReportsResponse
             {
@@ -178,7 +179,7 @@ namespace Reporting.Server.Controllers
         /// </summary>
         /// <param name="key">The key of the report.</param>
         /// <returns>Report admin details.</returns>
-        [HttpGet(ApiRoutes.V1.Admin.Reporting.GetReportDetailsForAdmin)]
+        [HttpGet(ApiRoutes.V1.Reporting.Admin.GetReportDetailsForAdmin)]
         public async Task<ActionResult<ReportAdminDetailsResponse>> GetReportDetailsForAdmin(string key)
         {
             _logger.LogInformation("Getting details for report with key: {Key}", key);
@@ -220,7 +221,7 @@ namespace Reporting.Server.Controllers
                     Name = p.Name,
                     SqlDataType = p.SqlDataType,
                     HasDefaultValue = p.HasDefaultValue
-                }).ToArray(),
+                }),
                 ColumnDefinitions = report.ColumnDefinitions.Select(c => new ReportColumnDefinitionModel
                 {
                     ColumnId = c.ColumnId,
@@ -228,11 +229,11 @@ namespace Reporting.Server.Controllers
                     SqlDataType = c.SqlDataType,
                     IsNullable = c.IsNullable,
                     IsIdentity = c.IsIdentity
-                }).ToArray(),
+                }),
                 CreatedByUser = report.CreatedByUser,
                 CreatedAtDate = report.CreatedAtDate,
-                LastUpdatedByUser = report.UpdatedByUser ?? null,
-                LastUpdatedAtDate = report.UpdatedAtDate ?? null,
+                LastUpdatedByUser = report.UpdatedByUser,
+                LastUpdatedAtDate = report.UpdatedAtDate,
             };
             var reportDetailsResponse = new ReportAdminDetailsResponse
             {
@@ -242,13 +243,13 @@ namespace Reporting.Server.Controllers
             return Ok(reportDetailsResponse);
         }
 
-        
+
         /// <summary>
         /// Gets the details of a report source by its ID.
         /// </summary>
         /// <param name="id">The ID of the report source.</param>
         /// <returns>A <see cref="ReportSourceResponse"/> containing the report source details and its activity log.</returns>
-        [HttpGet(ApiRoutes.V1.Admin.Reporting.GetReportSourceDetails)]
+        [HttpGet(ApiRoutes.V1.Reporting.Admin.GetReportSourceDetails)]
         public async Task<ActionResult<ReportSourceResponse>> GetReportSourceDetails(int id)
         {
             _logger.LogInformation("Getting all report sources.");
@@ -282,7 +283,7 @@ namespace Reporting.Server.Controllers
         /// Gets all available report sources for creating a new report.
         /// </summary>
         /// <returns>A <see cref="AvailableReportSourcesForNewReportResponse"/> containing all available report sources.</returns>
-        [HttpGet(ApiRoutes.V1.Admin.Reporting.GetAvailableReportSourcesForNewReport)]
+        [HttpGet(ApiRoutes.V1.Reporting.Admin.GetAvailableReportSourcesForNewReport)]
         public async Task<ActionResult<AvailableReportSourcesForNewReportResponse>> GetAvailableReportSourcesForNewReport()
         {
             _logger.LogInformation("Getting all available report sources for new report.");
@@ -309,7 +310,7 @@ namespace Reporting.Server.Controllers
         /// </summary>
         /// <param name="request">The new report request model.</param>
         /// <returns>The created report.</returns>
-        [HttpPost(ApiRoutes.V1.Admin.Reporting.NewReport)]
+        [HttpPost(ApiRoutes.V1.Reporting.Admin.NewReport)]
         public async Task<IActionResult> CreateReport(NewReportRequest request)
         {
             if (!ModelState.IsValid)
@@ -318,8 +319,16 @@ namespace Reporting.Server.Controllers
                 return BadRequest(ModelState);
             }
 
-            var newReport = request.Model;
-            newReport.Key = newReport.Key.ToLower();
+            var newReport = new NewReportModel
+            {
+                Key = request.Key.ToLower(),
+                ReportSourceId = request.ReportSourceId,
+                Name = request.Name,
+                Description = request.Description,
+                IsActive = true,
+                CreatedByUser = this.User.Identity?.Name ?? Environment.UserName,
+                CreatedAtDate = DateTime.UtcNow
+            };
 
             _logger.LogInformation("Creating new report with key: {Key}", newReport.Key);
             var createdReport = await _reportService.CreateReportAsync(newReport);
@@ -332,7 +341,7 @@ namespace Reporting.Server.Controllers
         /// </summary>
         /// <param name="request">The update report request model.</param>
         /// <returns>The updated report.</returns>
-        [HttpPut(ApiRoutes.V1.Admin.Reporting.UpdateReport)]
+        [HttpPut(ApiRoutes.V1.Reporting.Admin.UpdateReport)]
         public async Task<IActionResult> UpdateReport(UpdateReportRequest request)
         {
             if (!ModelState.IsValid)
@@ -341,8 +350,15 @@ namespace Reporting.Server.Controllers
                 return BadRequest(ModelState);
             }
 
-            var updateReport = request.Model;
-            updateReport.Key = updateReport.Key.ToLower();
+            var updateReport = new UpdateReportModel 
+            { 
+                Key = request.Key.ToLower(),
+                Name = request.Name,
+                Description = request.Description,
+                IsActive = request.IsActive,
+                UpdatedByUser = this.User.Identity?.Name ?? Environment.UserName,
+                UpdatedAtDate = DateTime.UtcNow
+            };
 
             _logger.LogInformation("Updating report with key: {Key}", updateReport.Key);
             var updatedReport = await _reportService.UpdateReportAsync(updateReport);
@@ -366,7 +382,7 @@ namespace Reporting.Server.Controllers
         /// Activate a report.
         /// </summary>
         /// <param name="request">The activate report request model.</param>
-        [HttpPut(ApiRoutes.V1.Admin.Reporting.ActivateReport)]
+        [HttpPut(ApiRoutes.V1.Reporting.Admin.ActivateReport)]
         public async Task<IActionResult> ActivateReport(ActivateReportRequest request)
         {
             if (!ModelState.IsValid)
@@ -375,8 +391,15 @@ namespace Reporting.Server.Controllers
                 return BadRequest(ModelState);
             }
 
-            _logger.LogInformation("Activating report with key: {Key}", request.Model.Key);
-            await _reportService.ActivateReportAsync(request.Model);
+            var activateReportModel = new ActivateReportModel
+            {
+                Key = request.Key.ToLower(),
+                UpdatedByUser = this.User.Identity?.Name ?? Environment.UserName,
+                UpdatedAtDate = DateTime.UtcNow
+            };
+
+            _logger.LogInformation("Activating report with key: {Key}", activateReportModel.Key);
+            await _reportService.ActivateReportAsync(activateReportModel);
             return NoContent();
         }
 
@@ -384,7 +407,7 @@ namespace Reporting.Server.Controllers
         /// Disable a report.
         /// </summary>
         /// <param name="request">The disable report request model.</param>
-        [HttpPut(ApiRoutes.V1.Admin.Reporting.DeactivateReport)]
+        [HttpPut(ApiRoutes.V1.Reporting.Admin.DeactivateReport)]
         public async Task<IActionResult> DisableReport(DisableReportRequest request)
         {
             if (!ModelState.IsValid)
@@ -393,8 +416,15 @@ namespace Reporting.Server.Controllers
                 return BadRequest(ModelState);
             }
 
-            _logger.LogInformation("Disabling report with key: {Key}", request.Model.Key);
-            await _reportService.DisableReportAsync(request.Model);
+            var disableReportModel = new DisableReportModel
+            {
+                Key = request.Key.ToLower(),
+                UpdatedByUser = this.User.Identity?.Name ?? Environment.UserName,
+                UpdatedAtDate = DateTime.UtcNow
+            };
+
+            _logger.LogInformation("Disabling report with key: {Key}", disableReportModel.Key);
+            await _reportService.DisableReportAsync(disableReportModel);
             return NoContent();
         }
 
@@ -402,7 +432,7 @@ namespace Reporting.Server.Controllers
         /// Delete a report.
         /// </summary>
         /// <param name="request">The delete report request model.</param>
-        [HttpDelete(ApiRoutes.V1.Admin.Reporting.DeleteReport)]
+        [HttpDelete(ApiRoutes.V1.Reporting.Admin.DeleteReport)]
         public async Task<IActionResult> DeleteReport(DeleteReportRequest request)
         {
             if (!ModelState.IsValid)
@@ -411,8 +441,13 @@ namespace Reporting.Server.Controllers
                 return BadRequest(ModelState);
             }
 
-            _logger.LogInformation("Deleting report with key: {Key}", request.Model.Key);
-            await _reportService.DeleteReportAsync(request.Model);
+            var deleteReportModel = new DeleteReportModel
+            {
+                Key = request.Key.ToLower()
+            };
+
+            _logger.LogInformation("Deleting report with key: {Key}", deleteReportModel.Key);
+            await _reportService.DeleteReportAsync(deleteReportModel);
             return NoContent();
         }
     }

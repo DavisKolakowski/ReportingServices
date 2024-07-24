@@ -15,8 +15,8 @@
         public bool HasParameters { get; set; }
         public int ReportSourceId { get; set; }
         public ReportSourceModel? ReportSource { get; set; }
-        public ReportParameterModel[]? Parameters { get; set; }
-        public ReportColumnDefinitionModel[] ColumnDefinitions { get; set; } = Array.Empty<ReportColumnDefinitionModel>();
+        public IEnumerable<ReportParameterModel>? Parameters { get; set; }
+        public IEnumerable<ReportColumnDefinitionModel> ColumnDefinitions { get; set; } = Array.Empty<ReportColumnDefinitionModel>();
         public string? CreatedByUser { get; set; }
         public DateTime CreatedAtDate { get; set; }
         public string? LastUpdatedByUser { get; set; } = null;

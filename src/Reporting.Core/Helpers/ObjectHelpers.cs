@@ -9,11 +9,11 @@
 
     public static class ObjectHelpers
     {
-        public static object? ConvertFromSqlValue(object? value, string sqlDataType)
+        public static object? ConvertFromSqlValue(object? value, string? sqlDataType)
         {
-            if (value == null)
+            if (value == null || string.IsNullOrEmpty(sqlDataType))
             {
-                return null;
+                return DBNull.Value;
             }
 
             var convertedValue = FormatValue(value);

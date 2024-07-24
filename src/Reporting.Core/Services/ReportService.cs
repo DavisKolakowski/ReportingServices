@@ -130,7 +130,6 @@
                 CreatedByUser = newReport.CreatedByUser,
                 CreatedAtDate = newReport.CreatedAtDate,
                 IsActive = newReport.IsActive,
-                HasParameters = newReport.HasParameters,
                 ReportSourceId = newReport.ReportSourceId
             };
 
@@ -139,6 +138,12 @@
 
         public async Task<Report> UpdateReportAsync(UpdateReportModel updateReport)
         {
+            if (string.IsNullOrWhiteSpace(updateReport.Key))
+            {
+                _logger.LogWarning($"Invalid report key provided.");
+                throw new KeyNotFoundException($"Report key is invalid or not provided.");
+            }
+
             var existingReport = await _reportRepository.GetByKeyAsync(updateReport.Key);
             if (existingReport == null)
             {
@@ -150,13 +155,18 @@
             existingReport.UpdatedByUser = updateReport.UpdatedByUser;
             existingReport.UpdatedAtDate = updateReport.UpdatedAtDate;
             existingReport.IsActive = updateReport.IsActive;
-            existingReport.HasParameters = updateReport.HasParameters;
 
             return await _reportRepository.UpdateAsync(existingReport);
         }
 
         public async Task ActivateReportAsync(ActivateReportModel report)
         {
+            if (string.IsNullOrWhiteSpace(report.Key))
+            {
+                _logger.LogWarning($"Invalid report key provided.");
+                throw new KeyNotFoundException($"Report key is invalid or not provided.");
+            }
+
             var existingReport = await _reportRepository.GetByKeyAsync(report.Key);
             if (existingReport == null)
             {
@@ -172,6 +182,12 @@
 
         public async Task DisableReportAsync(DisableReportModel report)
         {
+            if (string.IsNullOrWhiteSpace(report.Key))
+            {
+                _logger.LogWarning($"Invalid report key provided.");
+                throw new KeyNotFoundException($"Report key is invalid or not provided.");
+            }
+
             var existingReport = await _reportRepository.GetByKeyAsync(report.Key);
             if (existingReport == null)
             {
@@ -187,6 +203,12 @@
 
         public async Task DeleteReportAsync(DeleteReportModel report)
         {
+            if (string.IsNullOrWhiteSpace(report.Key))
+            {
+                _logger.LogWarning($"Invalid report key provided.");
+                throw new KeyNotFoundException($"Report key is invalid or not provided.");
+            }
+
             var existingReport = await _reportRepository.GetByKeyAsync(report.Key);
             if (existingReport == null)
             {
@@ -212,9 +234,8 @@
             }
 
             var reportColumns = await _systemRepository.GetReportColumnDefinitionsAsync(reportSource.FullName);
-            var reportColumnsArray = reportColumns.ToArray();
 
-            if (reportColumnsArray.Length != report.ColumnDefinitions.Length)
+            if (reportColumns != report.ColumnDefinitions)
             {
                 _logger.LogError($"Report column definitions do not match for report '{report.Key}'");
                 throw new InvalidOperationException($"Report column definitions do not match for report '{report.Key}'");
@@ -223,7 +244,7 @@
             var dataTable = new DataTable();
             if (!report.HasParameters)
             {
-                dataTable = await _reportRepository.ExecuteAsync(reportSource, reportColumnsArray);
+                dataTable = await _reportRepository.ExecuteAsync(reportSource, reportColumns.ToArray());
                 return dataTable.ToDictionaryList();
             }
 
@@ -251,9 +272,7 @@
                 parameter.CurrentValue = parameterModel.CurrentValue;
             }
 
-            var reportParametersArray = reportParameters.ToArray();
-
-            dataTable = await _reportRepository.ExecuteAsync(reportSource, reportColumnsArray, reportParametersArray);
+            dataTable = await _reportRepository.ExecuteAsync(reportSource, reportColumns.ToArray(), reportParameters.ToArray());
             return dataTable.ToDictionaryList();
         }
 
@@ -290,9 +309,8 @@
             }
 
             var reportColumns = await _systemRepository.GetReportColumnDefinitionsAsync(reportSource.FullName);
-            var reportColumnsArray = reportColumns.ToArray();
 
-            if (reportColumnsArray.Length != report.ColumnDefinitions.Length)
+            if (reportColumns != report.ColumnDefinitions)
             {
                 _logger.LogError($"Report column definitions do not match for report '{report.Key}'");
                 throw new InvalidOperationException($"Report column definitions do not match for report '{report.Key}'");
@@ -302,7 +320,7 @@
 
             if (!report.HasParameters)
             {
-                reportDataModel = await _reportRepository.ExecuteAsync(reportSource, reportColumnsArray);
+                reportDataModel = await _reportRepository.ExecuteAsync(reportSource, reportColumns.ToArray());
                 return ReportWorkbookUtility.CreateExcelReport(report, reportDataModel);
             }
 
@@ -330,9 +348,7 @@
                 parameter.CurrentValue = parameterModel.CurrentValue;
             }
 
-            var reportParametersArray = reportParameters.ToArray();
-
-            reportDataModel = await _reportRepository.ExecuteAsync(reportSource, reportColumnsArray, reportParametersArray);
+            reportDataModel = await _reportRepository.ExecuteAsync(reportSource, reportColumns.ToArray(), reportParameters.ToArray());
             return ReportWorkbookUtility.CreateExcelReport(report, reportDataModel);
         }
     }

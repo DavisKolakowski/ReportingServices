@@ -7,13 +7,14 @@
 
     using ClosedXML.Excel;
 
-    using Reporting.Core.Constants;
     using Reporting.Core.Entities;
     using Reporting.Core.Helpers;
     using Reporting.Core.Models;
 
     public static class ReportWorkbookUtility
     {
+        const string RowIdentifierKey = "InternalId";
+
         public static byte[] CreateExcelReport(ReportDetailsModel report, DataTable dataTable)
         {
             var parameters = report.Parameters;
@@ -41,7 +42,7 @@
             }
         }
 
-        private static void AddIndexSheetContent(IXLWorksheet worksheet, ReportDetailsModel report, ReportParameterModel[]? parameters)
+        private static void AddIndexSheetContent(IXLWorksheet worksheet, ReportDetailsModel report, IEnumerable<ReportParameterModel>? parameters)
         {
             worksheet.Cell(1, 1).Value = "Report Name";
             worksheet.Cell(1, 2).Value = report.Name ?? string.Empty;
@@ -67,7 +68,7 @@
 
         private static void AddDataSheetContent(IXLWorksheet worksheet, IEnumerable<ReportColumnDefinitionModel> columns, DataTable dataTable)
         {
-            var filteredColumns = columns.Where(column => column.Name != GridSettings.RowIdentifierKey).ToList();
+            var filteredColumns = columns.Where(column => column.Name != RowIdentifierKey).ToList();
 
             for (int i = 0; i < filteredColumns.Count; i++)
             {

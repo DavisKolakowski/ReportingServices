@@ -186,7 +186,7 @@
 
                     foreach (var column in columns)
                     {
-                        dataTable.Columns.Add(column.Name, ObjectHelpers.GetCSharpTypeForSqlTypeString(column.SqlDataType));
+                        dataTable.Columns.Add(column.Name, ObjectHelpers.GetCSharpTypeForSqlTypeString(column.SqlDataType!));
                     }
 
                     using (var reader = await connection.ExecuteReaderAsync(sql, dynamicParameters, commandType: commandType))
@@ -212,6 +212,10 @@
                 foreach (var param in parameters)
                 {
                     var currentValueString = param.CurrentValue?.ToString();
+                    if (string.IsNullOrEmpty(param.Name))
+                    {
+                        continue;
+                    }
                     _logger.LogInformation("Parameter {Name} = {Value}", param.Name, currentValueString);
                     dynamicParameters.Add(param.Name, ObjectHelpers.ConvertFromSqlValue(param.CurrentValue, param.SqlDataType));
                 }

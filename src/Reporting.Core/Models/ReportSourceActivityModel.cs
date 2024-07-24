@@ -9,8 +9,8 @@
 
     public class ReportSourceActivityModel
     {
-        public required ActivityType ActivityType { get; set; }
-        public required string ActivityByUser { get; set; }
-        public required DateTime ActivityDate { get; set; }
+        public ActivityType ActivityType { get; set; }
+        public string? ActivityByUser { get; set; }
+        public DateTime ActivityDate { get; set; }
     }
 }
