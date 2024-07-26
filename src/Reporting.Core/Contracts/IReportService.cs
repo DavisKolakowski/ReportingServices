@@ -11,6 +11,7 @@
         Task<IEnumerable<Report>> GetAllActiveReportsAsync();
         Task<IEnumerable<ReportSource>> GetAllAvailableReportSourcesAsync();
         Task<Report?> GetReportByKeyAsync(string reportKey);
+        Task<IEnumerable<ReportParameter>> GetParametersForReportKeyAsync(string reportKey);
         Task<Report?> GetReportDetailsAsync(string reportKey);
         Task<ReportSource> GetReportSourceAsync(Report report);
         Task<ReportSource> GetReportSourceByIdAsync(int reportSourceId);

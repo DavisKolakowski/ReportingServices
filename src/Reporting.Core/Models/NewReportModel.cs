@@ -1,11 +1,7 @@
 ﻿namespace Reporting.Core.Models
 {
     using System;
-    using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
-    using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
 
     public class NewReportModel
     {
@@ -23,7 +19,7 @@
         [StringLength(500)]
         public string Description { get; set; } = string.Empty;
 
-        public bool IsActive { get; set; }
+        public bool IsActive { get; set; } = true;
 
         [Required]
         public string? CreatedByUser { get; set; }

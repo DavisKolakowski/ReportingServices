@@ -8,6 +8,7 @@ namespace Reporting.Server.Controllers
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Authorization;
+    using Reporting.Core.Helpers;
 
     [ApiController]
     public class ReportingController : ControllerBase
@@ -65,12 +66,19 @@ namespace Reporting.Server.Controllers
             }
             var reportDetailsModel = new ReportDetailsModel
             {
-                Key = report.Key,
-                Name = report.Name,
-                Description = report.Description,
-                IsActive = report.IsActive,
-                HasParameters = report.HasParameters,
-                ReportSourceId = report.ReportSourceId,
+                Report = new ReportModel
+                {
+                    Key = report.Key,
+                    ReportSourceId = report.ReportSourceId,
+                    Name = report.Name,
+                    Description = report.Description,
+                    IsActive = report.IsActive,
+                    HasParameters = report.HasParameters,
+                    CreatedByUser = report.CreatedByUser,
+                    CreatedAtDate = report.CreatedAtDate,
+                    LastUpdatedByUser = report.UpdatedByUser,
+                    LastUpdatedAtDate = report.UpdatedAtDate
+                },
                 Parameters = report.Parameters?.Select(p => new ReportParameterModel
                 {
                     Position = p.Position,
@@ -86,10 +94,6 @@ namespace Reporting.Server.Controllers
                     IsNullable = c.IsNullable,
                     IsIdentity = c.IsIdentity
                 }),
-                CreatedByUser = report.CreatedByUser,
-                CreatedAtDate = report.CreatedAtDate,
-                LastUpdatedByUser = report.UpdatedByUser,
-                LastUpdatedAtDate = report.UpdatedAtDate,
             };
             var reportDetailsResponse = new ReportDetailsResponse
             {
@@ -113,13 +117,80 @@ namespace Reporting.Server.Controllers
                 return BadRequest(ModelState);
             }
 
-            _logger.LogInformation("Executing report with key: {Key}", request.Model.Key);
-            var data = await _reportService.GetReportDataAsTableAsync(request.Model);
+            if (request.Model.Report == null)
+            {
+                _logger.LogWarning("Report is required for ExecuteReportRequest.");
+                return BadRequest("Report is required.");
+            }
+
+            if (request.Model.Report.Key == null)
+            {
+                _logger.LogWarning("Report key is required for ExecuteReportRequest.");
+                return BadRequest("Report key is required.");
+            }
+
+            _logger.LogInformation("Executing report with key: {Key}", request.Model.Report.Key);
+
+            var report = await _reportService.GetReportDetailsAsync(request.Model.Report.Key);
+
+            if (report == null)
+            {
+                _logger.LogWarning("Report with key: {Key} not found.", request.Model.Report.Key);
+                return NotFound();
+            }
+
+            var reportDetails = new ReportDetailsModel
+            {
+                Report = new ReportModel
+                {
+                    Key = request.Model.Report.Key,
+                    ReportSourceId = report.ReportSourceId,
+                    Name = report.Name,
+                    Description = report.Description,
+                    IsActive = report.IsActive,
+                    HasParameters = report.HasParameters,
+                    CreatedByUser = report.CreatedByUser,
+                    CreatedAtDate = report.CreatedAtDate,
+                    LastUpdatedByUser = report.UpdatedByUser,
+                    LastUpdatedAtDate = report.UpdatedAtDate
+                },
+                Parameters = report.Parameters?.Select(p => new ReportParameterModel
+                {
+                    Position = p.Position,
+                    Name = p.Name,
+                    SqlDataType = p.SqlDataType,
+                    HasDefaultValue = p.HasDefaultValue,
+                    CurrentValue = request.Model.Parameters?.First(rp => rp.Name == p.Name).CurrentValue
+                }),
+                ColumnDefinitions = report.ColumnDefinitions.Select(c => new ReportColumnDefinitionModel
+                {
+                    ColumnId = c.ColumnId,
+                    Name = c.Name,
+                    SqlDataType = c.SqlDataType,
+                    IsNullable = c.IsNullable,
+                    IsIdentity = c.IsIdentity
+                }),
+            };
+
+            if (reportDetails == null)
+            {
+                _logger.LogWarning("Report with key: {Key} not found.", request.Model.Report.Key);
+                return NotFound();
+            }
+
+            var data = await _reportService.GetReportDataAsTableAsync(reportDetails);
+
+            var reportDataModel = new ReportDataModel
+            {
+                Report = reportDetails.Report,
+                Parameters = reportDetails.Parameters,
+                ColumnDefinitions = reportDetails.ColumnDefinitions,
+                Data = data
+            };
 
             var response = new ExecuteReportResponse
             {
-                Model = request.Model,
-                Data = data
+                Model = reportDataModel
             };
 
             return Ok(response);
@@ -139,10 +210,16 @@ namespace Reporting.Server.Controllers
                 return BadRequest(ModelState);
             }
 
-            _logger.LogInformation("Downloading report with key: {Key}", request.Model.Key);
+            if (request.Model.Report == null)
+            {
+                _logger.LogWarning("Report is required for DownloadReportRequest.");
+                return BadRequest("Report is required.");
+            }
+
+            _logger.LogInformation("Downloading report with key: {Key}", request.Model.Report.Key);
             var reportBytes = await _reportService.GetReportDataAsBytesAsync(request.Model);
 
-            var fileName = $"{request.Model.Key}.xlsx";
+            var fileName = $"{request.Model.Report.Key}.xlsx";
             return File(reportBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
         }
 
@@ -158,6 +235,7 @@ namespace Reporting.Server.Controllers
             var reportModels = reports.Select(r => new ReportModel
             {
                 Key = r.Key,
+                ReportSourceId = r.ReportSourceId,
                 Name = r.Name,
                 Description = r.Description,
                 HasParameters = r.HasParameters,
@@ -172,6 +250,34 @@ namespace Reporting.Server.Controllers
                 Model = reportModels
             };
             return Ok(activeReportsResponse);
+        }
+
+        [HttpGet(ApiRoutes.V1.Reporting.GetReportParameters)]
+        public async Task<ActionResult<ReportParametersResponse>> GetReportParameters(string key)
+        {
+            _logger.LogInformation("Getting parameters for report with key: {Key}", key);
+            var parameters = await _reportService.GetParametersForReportKeyAsync(key);
+            if (parameters == null)
+            {
+                _logger.LogWarning("Parameters for report with key: {Key} not found.", key);
+                return NotFound();
+            }
+
+            var reportParameters = parameters.Select(p => new ReportParameterModel
+            {
+                Position = p.Position,
+                Name = p.Name,
+                SqlDataType = p.SqlDataType,
+                HasDefaultValue = p.HasDefaultValue,
+                CurrentValue = p.CurrentValue
+            });
+
+            var reportParametersResponse = new ReportParametersResponse
+            {
+                Model = reportParameters
+            };
+
+            return Ok(reportParametersResponse);
         }
 
         /// <summary>
@@ -365,6 +471,7 @@ namespace Reporting.Server.Controllers
             var reportModel = new ReportModel
             {
                 Key = updatedReport.Key,
+                ReportSourceId = updatedReport.ReportSourceId,
                 Name = updatedReport.Name,
                 Description = updatedReport.Description,
                 IsActive = updatedReport.IsActive,

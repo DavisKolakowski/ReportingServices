@@ -53,6 +53,31 @@
             return await _reportRepository.GetByKeyAsync(reportKey);
         }
 
+        public async Task<IEnumerable<ReportParameter>> GetParametersForReportKeyAsync(string reportKey)
+        {
+            var report = await GetReportByKeyAsync(reportKey);
+            if (report == null)
+            {
+                _logger.LogError($"Report with key '{reportKey}' not found.");
+                throw new KeyNotFoundException($"Report with key '{reportKey}' not found.");
+            }
+            if (!report.HasParameters)
+            {
+                _logger.LogWarning($"Report '{reportKey}' does not have parameters.");
+                return Array.Empty<ReportParameter>();
+            }
+
+            var reportSource = await _reportSourceRepository.GetByIdAsync(report.ReportSourceId);
+            if (reportSource == null)
+            {
+                _logger.LogError($"Report source not found for report '{report.Key}'");
+                throw new InvalidOperationException($"Report source not found for report '{report.Key}'");
+            }
+
+            var reportParameters = await _systemRepository.GetReportParametersAsync(reportSource.FullName);
+            return reportParameters;
+        }
+
         public async Task<Report?> GetReportDetailsAsync(string reportKey)
         {
             var report = await GetReportByKeyAsync(reportKey);
@@ -220,45 +245,51 @@
 
         public async Task<IEnumerable<Dictionary<string, object>>> GetReportDataAsTableAsync(ReportDetailsModel report)
         {
-            if (string.IsNullOrWhiteSpace(report.Key))
+            if (report.Report == null)
+            {
+                _logger.LogWarning($"Invalid report details provided.");
+                throw new KeyNotFoundException($"Report details are invalid or not provided.");
+            }
+
+            if (string.IsNullOrWhiteSpace(report.Report.Key))
             {
                 _logger.LogWarning($"Invalid report key provided.");
                 throw new KeyNotFoundException($"Report key is invalid or not provided.");
             }
 
-            var reportSource = await _reportSourceRepository.GetByIdAsync(report.ReportSourceId);
+            var reportSource = await _reportSourceRepository.GetByIdAsync(report.Report.ReportSourceId);
             if (reportSource == null)
             {
-                _logger.LogError($"Report source not found for report '{report.Key}'");
-                throw new InvalidOperationException($"Report source not found for report '{report.Key}'");
+                _logger.LogError($"Report source not found for report '{report.Report.Key}'");
+                throw new InvalidOperationException($"Report source not found for report '{report.Report.Key}'");
             }
 
             var reportColumns = await _systemRepository.GetReportColumnDefinitionsAsync(reportSource.FullName);
 
             if (reportColumns != report.ColumnDefinitions)
             {
-                _logger.LogError($"Report column definitions do not match for report '{report.Key}'");
-                throw new InvalidOperationException($"Report column definitions do not match for report '{report.Key}'");
+                _logger.LogError($"Report column definitions do not match for report '{report.Report.Key}'");
+                throw new InvalidOperationException($"Report column definitions do not match for report '{report.Report.Key}'");
             }
 
             var dataTable = new DataTable();
-            if (!report.HasParameters)
+            if (!report.Report.HasParameters)
             {
                 dataTable = await _reportRepository.ExecuteAsync(reportSource, reportColumns.ToArray());
                 return dataTable.ToDictionaryList();
             }
 
             var reportParameters = await _systemRepository.GetReportParametersAsync(reportSource.FullName);
-            if (report.HasParameters && reportParameters == null)
+            if (report.Report.HasParameters && reportParameters == null)
             {
-                _logger.LogError($"Report '{report.Key}' requires parameters but none were found.");
-                throw new InvalidOperationException($"Report '{report.Key}' requires parameters.");
+                _logger.LogError($"Report '{report.Report.Key}' requires parameters but none were found.");
+                throw new InvalidOperationException($"Report '{report.Report.Key}' requires parameters.");
             }
 
             if (report.Parameters == null || !report.Parameters.Any())
             {
-                _logger.LogError($"Report '{report.Key}' requires parameters but none were provided.");
-                throw new InvalidOperationException($"Report '{report.Key}' requires parameters.");
+                _logger.LogError($"Report '{report.Report.Key}' requires parameters but none were provided.");
+                throw new InvalidOperationException($"Report '{report.Report.Key}' requires parameters.");
             }
 
             foreach (var parameter in reportParameters)
@@ -266,8 +297,8 @@
                 var parameterModel = report.Parameters.FirstOrDefault(p => p.Name == parameter.Name);
                 if (parameterModel == null)
                 {
-                    _logger.LogError($"Parameter '{parameter.Name}' not found for report '{report.Key}'.");
-                    throw new KeyNotFoundException($"Parameter '{parameter.Name}' not found for report '{report.Key}'.");
+                    _logger.LogError($"Parameter '{parameter.Name}' not found for report '{report.Report.Key}'.");
+                    throw new KeyNotFoundException($"Parameter '{parameter.Name}' not found for report '{report.Report.Key}'.");
                 }
                 parameter.CurrentValue = parameterModel.CurrentValue;
             }
@@ -276,80 +307,86 @@
             return dataTable.ToDictionaryList();
         }
 
-        public async Task<byte[]> GetReportDataAsBytesAsync(ReportDetailsModel report)
+        public async Task<byte[]> GetReportDataAsBytesAsync(ReportDetailsModel model)
         {
-            if (report == null)
+            if (model == null)
             {
                 _logger.LogWarning($"Invalid report details provided.");
                 throw new KeyNotFoundException($"Report details are invalid or not provided.");
             }
 
-            if (string.IsNullOrWhiteSpace(report.Key))
+            if (model.Report == null)
+            {
+                _logger.LogWarning($"Invalid report provided.");
+                throw new KeyNotFoundException($"Report is invalid or not provided.");
+            }
+
+            if (string.IsNullOrWhiteSpace(model.Report.Key))
             {
                 _logger.LogWarning($"Invalid report key provided.");
                 throw new KeyNotFoundException($"Report key is invalid or not provided.");
             }
 
-            if (report.Name.IsNullOrEmpty())
+            if (model.Report.Name.IsNullOrEmpty())
             {
                 _logger.LogWarning($"Invalid report name provided.");
                 throw new KeyNotFoundException($"Report name is invalid or not provided.");
             }
             
-            if (report.Description.IsNullOrEmpty())
+            if (model.Report.Description.IsNullOrEmpty())
             {
-                report.Description = "No description provided.";
+                model.Report.Description = "No description provided.";
             }
 
-            var reportSource = await _reportSourceRepository.GetByIdAsync(report.ReportSourceId);
+            var reportSource = await _reportSourceRepository.GetByIdAsync(model.Report.ReportSourceId);
             if (reportSource == null)
             {
-                _logger.LogError($"Report source not found for report '{report.Key}'");
-                throw new InvalidOperationException($"Report source not found for report '{report.Key}'");
+                _logger.LogError($"Report source not found for report '{model.Report.Key}'");
+                throw new InvalidOperationException($"Report source not found for report '{model.Report.Key}'");
             }
 
             var reportColumns = await _systemRepository.GetReportColumnDefinitionsAsync(reportSource.FullName);
 
-            if (reportColumns != report.ColumnDefinitions)
+            if (reportColumns != model.ColumnDefinitions)
             {
-                _logger.LogError($"Report column definitions do not match for report '{report.Key}'");
-                throw new InvalidOperationException($"Report column definitions do not match for report '{report.Key}'");
+                _logger.LogError($"Report column definitions do not match for report '{model.Report.Key}'");
+                throw new InvalidOperationException($"Report column definitions do not match for report '{model.Report.Key}'");
             }
 
             var reportDataModel = new DataTable();
 
-            if (!report.HasParameters)
+            if (!model.Report.HasParameters)
             {
                 reportDataModel = await _reportRepository.ExecuteAsync(reportSource, reportColumns.ToArray());
-                return ReportWorkbookUtility.CreateExcelReport(report, reportDataModel);
+                return ReportWorkbookUtility.CreateExcelReport(model, reportDataModel);
             }
 
             var reportParameters = await _systemRepository.GetReportParametersAsync(reportSource.FullName);
-            if (report.HasParameters && reportParameters == null)
+            if (model.Report.HasParameters && reportParameters == null)
             {
-                _logger.LogError($"Report '{report.Key}' requires parameters but none were found.");
-                throw new InvalidOperationException($"Report '{report.Key}' requires parameters.");
+                _logger.LogError($"Report '{model.Report.Key}' requires parameters but none were found.");
+                throw new InvalidOperationException($"Report '{model.Report.Key}' requires parameters.");
             }
 
-            if (report.Parameters == null || !report.Parameters.Any())
+            if (model.Parameters == null || !model.Parameters.Any())
             {
-                _logger.LogError($"Report '{report.Key}' requires parameters but none were provided.");
-                throw new InvalidOperationException($"Report '{report.Key}' requires parameters.");
+                _logger.LogError($"Report '{model.Report.Key}' requires parameters but none were provided.");
+                throw new InvalidOperationException($"Report '{model.Report.Key}' requires parameters.");
             }
 
             foreach (var parameter in reportParameters)
             {
-                var parameterModel = report.Parameters.FirstOrDefault(p => p.Name == parameter.Name);
+                var parameterModel = model.Parameters.FirstOrDefault(p => p.Name == parameter.Name);
                 if (parameterModel == null)
                 {
-                    _logger.LogError($"Parameter '{parameter.Name}' not found for report '{report.Key}'.");
-                    throw new KeyNotFoundException($"Parameter '{parameter.Name}' not found for report '{report.Key}'.");
+                    _logger.LogError($"Parameter '{parameter.Name}' not found for report '{model.Report.Key}'.");
+                    throw new KeyNotFoundException($"Parameter '{parameter.Name}' not found for report '{model.Report.Key}'.");
                 }
                 parameter.CurrentValue = parameterModel.CurrentValue;
             }
 
             reportDataModel = await _reportRepository.ExecuteAsync(reportSource, reportColumns.ToArray(), reportParameters.ToArray());
-            return ReportWorkbookUtility.CreateExcelReport(report, reportDataModel);
+            return ReportWorkbookUtility.CreateExcelReport(model, reportDataModel);
         }
     }
 }

@@ -12,6 +12,7 @@
             public static class Reporting
             {
                 public const string GetAllActiveReports = Base + "/reporting/active-reports";
+                public const string GetReportParameters = Base + "/reporting/report/{key}/parameters";
                 public const string GetReportDetailsForUser = Base + "/reporting/report/{key}";
                 public const string ExecuteReport = Base + "/reporting/report/data";
                 public const string DownloadReport = Base + "/reporting/report/file";
