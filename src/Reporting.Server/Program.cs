@@ -42,6 +42,13 @@ namespace Reporting.Server
                 app.UseSwaggerUI();
             }
 
+            app.UseCors(o =>
+            {
+                o.AllowAnyOrigin();
+                o.AllowAnyMethod();
+                o.AllowAnyHeader();
+            });
+
             app.UseHttpsRedirection();
 
             app.UseAuthorization();

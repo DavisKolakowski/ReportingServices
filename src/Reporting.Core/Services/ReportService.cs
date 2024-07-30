@@ -78,6 +78,26 @@
             return reportParameters;
         }
 
+        public async Task<IEnumerable<ReportColumnDefinition>> GetColumnDefinitionsForReportKeyAsync(string reportKey)
+        {
+            var report = await GetReportByKeyAsync(reportKey);
+            if (report == null)
+            {
+                _logger.LogError($"Report with key '{reportKey}' not found.");
+                throw new KeyNotFoundException($"Report with key '{reportKey}' not found.");
+            }
+
+            var reportSource = await _reportSourceRepository.GetByIdAsync(report.ReportSourceId);
+            if (reportSource == null)
+            {
+                _logger.LogError($"Report source not found for report '{report.Key}'");
+                throw new InvalidOperationException($"Report source not found for report '{report.Key}'");
+            }
+
+            var reportColumnDefinitions = await _systemRepository.GetReportColumnDefinitionsAsync(reportSource.FullName);
+            return reportColumnDefinitions;
+        }
+
         public async Task<Report?> GetReportDetailsAsync(string reportKey)
         {
             var report = await GetReportByKeyAsync(reportKey);
@@ -182,48 +202,6 @@
             existingReport.IsActive = updateReport.IsActive;
 
             return await _reportRepository.UpdateAsync(existingReport);
-        }
-
-        public async Task ActivateReportAsync(ActivateReportModel report)
-        {
-            if (string.IsNullOrWhiteSpace(report.Key))
-            {
-                _logger.LogWarning($"Invalid report key provided.");
-                throw new KeyNotFoundException($"Report key is invalid or not provided.");
-            }
-
-            var existingReport = await _reportRepository.GetByKeyAsync(report.Key);
-            if (existingReport == null)
-            {
-                throw new KeyNotFoundException($"Report with key '{report.Key}' not found.");
-            }
-
-            existingReport.IsActive = true;
-            existingReport.UpdatedByUser = report.UpdatedByUser;
-            existingReport.UpdatedAtDate = report.UpdatedAtDate;
-
-            await _reportRepository.UpdateAsync(existingReport);
-        }
-
-        public async Task DisableReportAsync(DisableReportModel report)
-        {
-            if (string.IsNullOrWhiteSpace(report.Key))
-            {
-                _logger.LogWarning($"Invalid report key provided.");
-                throw new KeyNotFoundException($"Report key is invalid or not provided.");
-            }
-
-            var existingReport = await _reportRepository.GetByKeyAsync(report.Key);
-            if (existingReport == null)
-            {
-                throw new KeyNotFoundException($"Report with key '{report.Key}' not found.");
-            }
-
-            existingReport.IsActive = false;
-            existingReport.UpdatedByUser = report.UpdatedByUser;
-            existingReport.UpdatedAtDate = report.UpdatedAtDate;
-
-            await _reportRepository.UpdateAsync(existingReport);
         }
 
         public async Task DeleteReportAsync(DeleteReportModel report)

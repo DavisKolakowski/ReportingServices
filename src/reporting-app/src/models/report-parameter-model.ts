@@ -1,9 +1,8 @@
-import { SqlDataType } from "./enums";
-
 export interface ReportParameterModel {
     position: number;
     name: string;
-    sqlDataType: SqlDataType;
+    sqlDataType?: string;
     hasDefaultValue: boolean;
     currentValue?: any;
 }
+  

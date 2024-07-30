@@ -2,32 +2,28 @@
 {
     public static class ApiRoutes
     {
-        private const string Root = "api";
 
         public static class V1
         {
-            private const string Base = Root + "/v1";
-	    private const string AdminBase = Base + "/admin";
 
             public static class Reporting
             {
-                public const string GetAllActiveReports = Base + "/reporting/active-reports";
-                public const string GetReportParameters = Base + "/reporting/report/{key}/parameters";
-                public const string GetReportDetailsForUser = Base + "/reporting/report/{key}";
-                public const string ExecuteReport = Base + "/reporting/report/data";
-                public const string DownloadReport = Base + "/reporting/report/file";
+                public const string GetReports = "api/v1/reporting/active-reports";
+                public const string GetReportDetails = "api/v1/reporting/report/{key}";
+                public const string GetReportParameters = "api/v1/reporting/report/{key}/parameters";
+                public const string GetReportColumnDefinitions = "api/v1/reporting/report/{key}/columns";             
+                public const string GetReportData = "api/v1/reporting/report/{key}/data";
+                public const string DownloadReport = "api/v1/reporting/report/{key}/file";
 
             	public static class Admin
             	{             
-                    public const string GetAllReports = AdminBase + "/reporting/all-reports";
-                    public const string GetReportDetailsForAdmin = AdminBase + "/reporting/report/{key}";
-                    public const string GetReportSourceDetails = AdminBase + "/reporting/report-source/{id}";
-                    public const string GetAvailableReportSourcesForNewReport = AdminBase + "/reporting/report/unused-report-sources";
-                    public const string NewReport = AdminBase + "/reporting/report";
-                    public const string UpdateReport = AdminBase + "/reporting/report";
-                    public const string ActivateReport = AdminBase + "/reporting/report/activation";
-                    public const string DeactivateReport = AdminBase + "/reporting/report/deactivation";
-                    public const string DeleteReport = AdminBase + "/reporting/report";
+                    public const string GetReports = "api/v1/admin/reporting/all-reports";
+                    public const string GetReportDetails = "api/v1/admin/reporting/report/{key}";
+                    public const string GetReportSourceDetails = "api/v1/admin/reporting/report-source/{id}";
+                    public const string GetAvailableReportSourcesForNewReport = "api/v1/admin/reporting/report/unused-report-sources";
+                    public const string NewReport = "api/v1/admin/reporting/report";
+                    public const string UpdateReport = "api/v1/admin/reporting/report";
+                    public const string DeleteReport = "api/v1/admin/reporting/report";
             	}
             }
         }

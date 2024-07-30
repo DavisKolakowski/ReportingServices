@@ -2,13 +2,12 @@ export interface ReportModel {
     key: string;
     reportSourceId: number;
     name: string;
-    description: string;
+    description?: string;
     isActive: boolean;
     hasParameters: boolean;
-    createdByUser: string;
-    createdAtDate: Date;
+    createdByUser?: string;
+    createdAtDate: string;
     lastUpdatedByUser?: string;
-    lastUpdatedAtDate?: Date;
+    lastUpdatedAtDate?: string;
 }
-
   

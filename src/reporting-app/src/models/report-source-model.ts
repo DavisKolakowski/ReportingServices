@@ -1,12 +1,12 @@
-import { ActivityType, ReportSourceSqlObjectType } from './enums';
+import { ActivityType, ReportSourceType } from '@/enums';
 
 export interface ReportSourceModel {
-    id: number;
-    type: ReportSourceSqlObjectType;
-    schema: string;
-    name: string;
-    fullName: string;
-    lastActivityType: ActivityType;
-    lastActivityByUser: string;
-    lastActivityDate: Date;
+  id: number;
+  type: ReportSourceType;
+  schema?: string;
+  name?: string;
+  fullName?: string;
+  lastActivityType: ActivityType;
+  lastActivityByUser?: string;
+  lastActivityDate: string;
 }

@@ -1,4 +1,5 @@
-import { SqlDataType, HtmlInputType } from '@/models/enums';
+import { SqlDataType, HtmlInputType } from '@/enums';
+import { GridColDef } from '@mui/x-data-grid';
 
 export const getDataType = (sqlType: SqlDataType) => {
   switch (sqlType) {
@@ -6,7 +7,7 @@ export const getDataType = (sqlType: SqlDataType) => {
     case SqlDataType.Int:
     case SqlDataType.SmallInt:
     case SqlDataType.TinyInt:
-      return Number;
+      return typeof 'number';
     case SqlDataType.Binary:
     case SqlDataType.Image:
     case SqlDataType.Timestamp:
@@ -68,5 +69,32 @@ export const getInputType = (sqlType: SqlDataType): HtmlInputType => {
       return HtmlInputType.Time;
     default:
       return HtmlInputType.Text;
+  }
+};
+
+export const getGridColumnType = (sqlType: SqlDataType): GridColDef['type'] => {
+  switch (sqlType) {
+    case SqlDataType.BigInt:
+    case SqlDataType.Int:
+    case SqlDataType.SmallInt:
+    case SqlDataType.TinyInt:
+    case SqlDataType.Decimal:
+    case SqlDataType.Money:
+    case SqlDataType.Numeric:
+    case SqlDataType.SmallMoney:
+    case SqlDataType.Float:
+    case SqlDataType.Real:
+      return 'number';
+    case SqlDataType.Bit:
+      return 'boolean';
+    case SqlDataType.Date:
+      return 'date';
+    case SqlDataType.DateTime:
+    case SqlDataType.DateTime2:
+    case SqlDataType.DateTimeOffset:
+    case SqlDataType.SmallDateTime:
+      return 'dateTime';
+    default:
+      return 'string';
   }
 };

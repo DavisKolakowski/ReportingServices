@@ -217,7 +217,7 @@
                         continue;
                     }
                     _logger.LogInformation("Parameter {Name} = {Value}", param.Name, currentValueString);
-                    dynamicParameters.Add(param.Name, ObjectHelpers.ConvertFromSqlValue(param.CurrentValue, param.SqlDataType));
+                    dynamicParameters.Add(param.Name, ObjectHelpers.ConvertSqlValue(param.CurrentValue, param.SqlDataType));
                 }
             }
 

@@ -9,7 +9,7 @@
 
     public static class ObjectHelpers
     {
-        public static object? ConvertFromSqlValue(object? value, string? sqlDataType)
+        public static object? ConvertSqlValue(object? value, string? sqlDataType)
         {
             if (value == null || string.IsNullOrEmpty(sqlDataType))
             {

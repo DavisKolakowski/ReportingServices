@@ -9,6 +9,7 @@ namespace Reporting.Server.Controllers
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Authorization;
     using Reporting.Core.Helpers;
+    using Reporting.Core.Entities;
 
     [ApiController]
     public class ReportingController : ControllerBase
@@ -26,27 +27,71 @@ namespace Reporting.Server.Controllers
         /// Get all active reports.
         /// </summary>
         /// <returns>A list of active reports.</returns>
-        [HttpGet(ApiRoutes.V1.Reporting.GetAllActiveReports)]
-        public async Task<ActionResult<ActiveReportsResponse>> GetAllActiveReports()
+        [HttpGet(ApiRoutes.V1.Reporting.GetReports)]
+        public async Task<ActionResult<IEnumerable<ReportModel>>> GetAllActiveReports()
         {
             _logger.LogInformation("Getting all active reports.");
             var reports = await _reportService.GetAllActiveReportsAsync();
-            var reportModels = reports.Select(r => new ActiveReportModel
+            var reportModels = reports.Select(report => new ReportModel
             {
-                Key = r.Key,
-                Name = r.Name,
-                Description = r.Description,
-                HasParameters = r.HasParameters,
-                CreatedByUser = r.CreatedByUser,
-                CreatedAtDate = r.CreatedAtDate,
-                LastUpdatedByUser = r.UpdatedByUser,
-                LastUpdatedAtDate = r.UpdatedAtDate
+                Key = report.Key,
+                ReportSourceId = report.ReportSourceId,
+                Name = report.Name,
+                Description = report.Description,
+                IsActive = report.IsActive,
+                HasParameters = report.HasParameters,
+                CreatedByUser = report.CreatedByUser,
+                CreatedAtDate = report.CreatedAtDate,
+                LastUpdatedByUser = report.UpdatedByUser,
+                LastUpdatedAtDate = report.UpdatedAtDate
             });
-            var activeReportsResponse = new ActiveReportsResponse
+            return Ok(reportModels);
+        }
+
+        [HttpGet(ApiRoutes.V1.Reporting.GetReportParameters)]
+        public async Task<ActionResult<IEnumerable<ReportParameterModel>>> GetReportParameters(string key)
+        {
+            _logger.LogInformation("Getting parameters for report with key: {Key}", key);
+            var parameters = await _reportService.GetParametersForReportKeyAsync(key);
+            if (parameters == null)
             {
-                Model = reportModels
-            };
-            return Ok(activeReportsResponse);
+                _logger.LogWarning("Parameters for report with key: {Key} not found.", key);
+                return NotFound();
+            }
+
+            var reportParameters = parameters.Select(p => new ReportParameterModel
+            {
+                Position = p.Position,
+                Name = p.Name,
+                SqlDataType = p.SqlDataType,
+                HasDefaultValue = p.HasDefaultValue,
+                CurrentValue = p.CurrentValue
+            });
+
+            return Ok(reportParameters);
+        }
+
+        [HttpGet(ApiRoutes.V1.Reporting.GetReportColumnDefinitions)]
+        public async Task<ActionResult<IEnumerable<ReportColumnDefinitionModel>>> GetReportColumnDefinitions(string key)
+        {
+            _logger.LogInformation("Getting column definitions for report with key: {Key}", key);
+            var columnDefinitions = await _reportService.GetColumnDefinitionsForReportKeyAsync(key);
+            if (columnDefinitions == null)
+            {
+                _logger.LogWarning("Column definitions for report with key: {Key} not found.", key);
+                return NotFound();
+            }
+
+            var reportColumnDefinitions = columnDefinitions.Select(c => new ReportColumnDefinitionModel
+            {
+                ColumnId = c.ColumnId,
+                Name = c.Name,
+                SqlDataType = c.SqlDataType,
+                IsNullable = c.IsNullable,
+                IsIdentity = c.IsIdentity
+            });
+
+            return Ok(reportColumnDefinitions);
         }
 
         /// <summary>
@@ -54,8 +99,8 @@ namespace Reporting.Server.Controllers
         /// </summary>
         /// <param name="key">The key of the report.</param>
         /// <returns>Report details.</returns>
-        [HttpGet(ApiRoutes.V1.Reporting.GetReportDetailsForUser)]
-        public async Task<ActionResult<ReportDetailsResponse>> GetReportDetails(string key)
+        [HttpGet(ApiRoutes.V1.Reporting.GetReportDetails)]
+        public async Task<ActionResult<ReportDetailsModel>> GetReportDetails(string key)
         {
             _logger.LogInformation("Getting details for report with key: {Key}", key);
             var report = await _reportService.GetReportDetailsAsync(key);
@@ -95,55 +140,46 @@ namespace Reporting.Server.Controllers
                     IsIdentity = c.IsIdentity
                 }),
             };
-            var reportDetailsResponse = new ReportDetailsResponse
-            {
-                Model = reportDetailsModel,
-            };
 
-            return Ok(reportDetailsResponse);
+            return Ok(reportDetailsModel);
         }
 
         /// <summary>
         /// Execute a report.
         /// </summary>
-        /// <param name="request">The execute report request model.</param>
+        /// <param name="key">The report key.</param>
+        /// <param name="queryParams">The report parameters as query string.</param>
         /// <returns>Execution result.</returns>
-        [HttpPost(ApiRoutes.V1.Reporting.ExecuteReport)]
-        public async Task<ActionResult<ExecuteReportResponse>> ExecuteReport(ExecuteReportRequest request)
+        [HttpGet(ApiRoutes.V1.Reporting.GetReportData)]
+        public async Task<ActionResult<ReportDataModel>> GetReportData(string key, [FromQuery] Dictionary<string, object>? queryParams = null)
         {
-            if (!ModelState.IsValid)
-            {
-                _logger.LogWarning("Invalid model state for ExecuteReportRequest.");
-                return BadRequest(ModelState);
-            }
-
-            if (request.Model.Report == null)
-            {
-                _logger.LogWarning("Report is required for ExecuteReportRequest.");
-                return BadRequest("Report is required.");
-            }
-
-            if (request.Model.Report.Key == null)
+            if (string.IsNullOrEmpty(key))
             {
                 _logger.LogWarning("Report key is required for ExecuteReportRequest.");
                 return BadRequest("Report key is required.");
             }
 
-            _logger.LogInformation("Executing report with key: {Key}", request.Model.Report.Key);
+            _logger.LogInformation("Executing report with key: {Key}", key);
 
-            var report = await _reportService.GetReportDetailsAsync(request.Model.Report.Key);
+            var report = await _reportService.GetReportDetailsAsync(key);
 
             if (report == null)
             {
-                _logger.LogWarning("Report with key: {Key} not found.", request.Model.Report.Key);
+                _logger.LogWarning("Report with key: {Key} not found.", key);
                 return NotFound();
+            }
+
+            if (report.HasParameters && (report.Parameters == null || queryParams == null || report.Parameters.Length != queryParams.Count || !report.Parameters.All(p => queryParams.ContainsKey(p.Name))))
+            {
+                _logger.LogWarning("Invalid parameters for report with key: {Key}", key);
+                return BadRequest("Invalid or missing parameters.");
             }
 
             var reportDetails = new ReportDetailsModel
             {
                 Report = new ReportModel
                 {
-                    Key = request.Model.Report.Key,
+                    Key = key,
                     ReportSourceId = report.ReportSourceId,
                     Name = report.Name,
                     Description = report.Description,
@@ -154,14 +190,16 @@ namespace Reporting.Server.Controllers
                     LastUpdatedByUser = report.UpdatedByUser,
                     LastUpdatedAtDate = report.UpdatedAtDate
                 },
-                Parameters = report.Parameters?.Select(p => new ReportParameterModel
-                {
-                    Position = p.Position,
-                    Name = p.Name,
-                    SqlDataType = p.SqlDataType,
-                    HasDefaultValue = p.HasDefaultValue,
-                    CurrentValue = request.Model.Parameters?.First(rp => rp.Name == p.Name).CurrentValue
-                }),
+                Parameters = report.HasParameters && report.Parameters != null && queryParams != null && report.Parameters.Length == queryParams.Count
+                    ? report.Parameters.Select(p => new ReportParameterModel
+                    {
+                        Position = p.Position,
+                        Name = p.Name,
+                        SqlDataType = p.SqlDataType,
+                        HasDefaultValue = p.HasDefaultValue,
+                        CurrentValue = queryParams[p.Name]
+                    })
+                    : Array.Empty<ReportParameterModel>(),
                 ColumnDefinitions = report.ColumnDefinitions.Select(c => new ReportColumnDefinitionModel
                 {
                     ColumnId = c.ColumnId,
@@ -169,57 +207,88 @@ namespace Reporting.Server.Controllers
                     SqlDataType = c.SqlDataType,
                     IsNullable = c.IsNullable,
                     IsIdentity = c.IsIdentity
-                }),
+                }).ToArray()
             };
-
-            if (reportDetails == null)
-            {
-                _logger.LogWarning("Report with key: {Key} not found.", request.Model.Report.Key);
-                return NotFound();
-            }
 
             var data = await _reportService.GetReportDataAsTableAsync(reportDetails);
 
-            var reportDataModel = new ReportDataModel
+            var reportDataModel = new ReportDataModel(reportDetails)
             {
-                Report = reportDetails.Report,
-                Parameters = reportDetails.Parameters,
-                ColumnDefinitions = reportDetails.ColumnDefinitions,
                 Data = data
             };
 
-            var response = new ExecuteReportResponse
-            {
-                Model = reportDataModel
-            };
-
-            return Ok(response);
+            return Ok(reportDataModel);
         }
 
         /// <summary>
         /// Download a report.
         /// </summary>
-        /// <param name="request">The download report request model.</param>
+        /// <param name="key">The report key.</param>
+        /// <param name="queryParams">The report parameters as query string.</param>
         /// <returns>The report file.</returns>
-        [HttpPost(ApiRoutes.V1.Reporting.DownloadReport)]
-        public async Task<IActionResult> DownloadReport(DownloadReportRequest request)
+        [HttpGet(ApiRoutes.V1.Reporting.DownloadReport)]
+        public async Task<IActionResult> DownloadReport(string key, [FromQuery] Dictionary<string, object>? queryParams = null)
         {
-            if (!ModelState.IsValid)
+            if (string.IsNullOrEmpty(key))
             {
-                _logger.LogWarning("Invalid model state for DownloadReportRequest.");
-                return BadRequest(ModelState);
+                _logger.LogWarning("Report key is required for DownloadReportRequest.");
+                return BadRequest("Report key is required.");
             }
 
-            if (request.Model.Report == null)
+            _logger.LogInformation("Downloading report with key: {Key}", key);
+
+            var report = await _reportService.GetReportDetailsAsync(key);
+
+            if (report == null)
             {
-                _logger.LogWarning("Report is required for DownloadReportRequest.");
-                return BadRequest("Report is required.");
+                _logger.LogWarning("Report with key: {Key} not found.", key);
+                return NotFound();
             }
 
-            _logger.LogInformation("Downloading report with key: {Key}", request.Model.Report.Key);
-            var reportBytes = await _reportService.GetReportDataAsBytesAsync(request.Model);
+            if (report.HasParameters && (report.Parameters == null || queryParams == null || report.Parameters.Length != queryParams.Count || !report.Parameters.All(p => queryParams.ContainsKey(p.Name))))
+            {
+                _logger.LogWarning("Invalid parameters for report with key: {Key}", key);
+                return BadRequest("Invalid or missing parameters.");
+            }
 
-            var fileName = $"{request.Model.Report.Key}.xlsx";
+            var reportDetails = new ReportDetailsModel
+            {
+                Report = new ReportModel
+                {
+                    Key = key,
+                    ReportSourceId = report.ReportSourceId,
+                    Name = report.Name,
+                    Description = report.Description,
+                    IsActive = report.IsActive,
+                    HasParameters = report.HasParameters,
+                    CreatedByUser = report.CreatedByUser,
+                    CreatedAtDate = report.CreatedAtDate,
+                    LastUpdatedByUser = report.UpdatedByUser,
+                    LastUpdatedAtDate = report.UpdatedAtDate
+                },
+                Parameters = report.HasParameters && report.Parameters != null && queryParams != null && report.Parameters.Length == queryParams.Count
+                    ? report.Parameters.Select(p => new ReportParameterModel
+                    {
+                        Position = p.Position,
+                        Name = p.Name,
+                        SqlDataType = p.SqlDataType,
+                        HasDefaultValue = p.HasDefaultValue,
+                        CurrentValue = queryParams[p.Name]
+                    })
+                    : Array.Empty<ReportParameterModel>(),
+                ColumnDefinitions = report.ColumnDefinitions.Select(c => new ReportColumnDefinitionModel
+                {
+                    ColumnId = c.ColumnId,
+                    Name = c.Name,
+                    SqlDataType = c.SqlDataType,
+                    IsNullable = c.IsNullable,
+                    IsIdentity = c.IsIdentity
+                }).ToArray()
+            };
+
+            var reportBytes = await _reportService.GetReportDataAsBytesAsync(reportDetails);
+
+            var fileName = $"{key}.xlsx";
             return File(reportBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
         }
 
@@ -227,8 +296,8 @@ namespace Reporting.Server.Controllers
         /// Get all reports.
         /// </summary>
         /// <returns>A list of reports.</returns>
-        [HttpGet(ApiRoutes.V1.Reporting.Admin.GetAllReports)]
-        public async Task<ActionResult<AllReportsResponse>> GetAllReports()
+        [HttpGet(ApiRoutes.V1.Reporting.Admin.GetReports)]
+        public async Task<ActionResult<IEnumerable<ReportModel>>> GetAllReports()
         {
             _logger.LogInformation("Getting all reports.");
             var reports = await _reportService.GetAllReportsAsync();
@@ -245,39 +314,7 @@ namespace Reporting.Server.Controllers
                 LastUpdatedByUser = r.UpdatedByUser,
                 LastUpdatedAtDate = r.UpdatedAtDate
             });
-            var activeReportsResponse = new AllReportsResponse
-            {
-                Model = reportModels
-            };
-            return Ok(activeReportsResponse);
-        }
-
-        [HttpGet(ApiRoutes.V1.Reporting.GetReportParameters)]
-        public async Task<ActionResult<ReportParametersResponse>> GetReportParameters(string key)
-        {
-            _logger.LogInformation("Getting parameters for report with key: {Key}", key);
-            var parameters = await _reportService.GetParametersForReportKeyAsync(key);
-            if (parameters == null)
-            {
-                _logger.LogWarning("Parameters for report with key: {Key} not found.", key);
-                return NotFound();
-            }
-
-            var reportParameters = parameters.Select(p => new ReportParameterModel
-            {
-                Position = p.Position,
-                Name = p.Name,
-                SqlDataType = p.SqlDataType,
-                HasDefaultValue = p.HasDefaultValue,
-                CurrentValue = p.CurrentValue
-            });
-
-            var reportParametersResponse = new ReportParametersResponse
-            {
-                Model = reportParameters
-            };
-
-            return Ok(reportParametersResponse);
+            return Ok(reportModels);
         }
 
         /// <summary>
@@ -285,8 +322,8 @@ namespace Reporting.Server.Controllers
         /// </summary>
         /// <param name="key">The key of the report.</param>
         /// <returns>Report admin details.</returns>
-        [HttpGet(ApiRoutes.V1.Reporting.Admin.GetReportDetailsForAdmin)]
-        public async Task<ActionResult<ReportAdminDetailsResponse>> GetReportDetailsForAdmin(string key)
+        [HttpGet(ApiRoutes.V1.Reporting.Admin.GetReportDetails)]
+        public async Task<ActionResult<ReportAdminDetailsModel>> GetReportDetailsForAdmin(string key)
         {
             _logger.LogInformation("Getting details for report with key: {Key}", key);
             var report = await _reportService.GetReportDetailsAsync(key);
@@ -341,12 +378,8 @@ namespace Reporting.Server.Controllers
                 LastUpdatedByUser = report.UpdatedByUser,
                 LastUpdatedAtDate = report.UpdatedAtDate,
             };
-            var reportDetailsResponse = new ReportAdminDetailsResponse
-            {
-                Model = reportAdminDetailsModel,
-            };
 
-            return Ok(reportDetailsResponse);
+            return Ok(reportAdminDetailsModel);
         }
 
 
@@ -354,9 +387,9 @@ namespace Reporting.Server.Controllers
         /// Gets the details of a report source by its ID.
         /// </summary>
         /// <param name="id">The ID of the report source.</param>
-        /// <returns>A <see cref="ReportSourceResponse"/> containing the report source details and its activity log.</returns>
+        /// <returns>A <see cref="ReportSourceDetailsModel"/> containing the report source details and its activity log.</returns>
         [HttpGet(ApiRoutes.V1.Reporting.Admin.GetReportSourceDetails)]
-        public async Task<ActionResult<ReportSourceResponse>> GetReportSourceDetails(int id)
+        public async Task<ActionResult<ReportSourceDetailsModel>> GetReportSourceDetails(int id)
         {
             _logger.LogInformation("Getting all report sources.");
             var reportSource = await _reportService.GetReportSourceByIdAsync(id);
@@ -371,9 +404,9 @@ namespace Reporting.Server.Controllers
                 LastActivityDate = reportSource.LastActivityDate
             };
             var reportSourceActivity = await _reportService.GetReportSourceActivityLogAsync(reportSource.FullName);
-            var reportSourcesResponse = new ReportSourceResponse
+            var reportSourceDetails = new ReportSourceDetailsModel
             {
-                Model = reportSourceModel,
+                Source = reportSourceModel,
                 ActivityLog = reportSourceActivity.Select(a => new ReportSourceActivityModel
                 {
                     ActivityType = a.ActivityType,
@@ -381,7 +414,7 @@ namespace Reporting.Server.Controllers
                     ActivityDate = a.ActivityDate
                 })
             };
-            return Ok(reportSourcesResponse);
+            return Ok(reportSourceDetails);
         }
 
 
@@ -390,7 +423,7 @@ namespace Reporting.Server.Controllers
         /// </summary>
         /// <returns>A <see cref="AvailableReportSourcesForNewReportResponse"/> containing all available report sources.</returns>
         [HttpGet(ApiRoutes.V1.Reporting.Admin.GetAvailableReportSourcesForNewReport)]
-        public async Task<ActionResult<AvailableReportSourcesForNewReportResponse>> GetAvailableReportSourcesForNewReport()
+        public async Task<ActionResult<IEnumerable<ReportSourceModel>>> GetAvailableReportSourcesForNewReport()
         {
             _logger.LogInformation("Getting all available report sources for new report.");
             var reportSources = await _reportService.GetAllAvailableReportSourcesAsync();
@@ -404,11 +437,8 @@ namespace Reporting.Server.Controllers
                 LastActivityByUser = r.LastActivityByUser,
                 LastActivityDate = r.LastActivityDate
             });
-            var availableReportSourcesResponse = new AvailableReportSourcesForNewReportResponse
-            {
-                Model = reportSourceModels
-            };
-            return Ok(availableReportSourcesResponse);
+
+            return Ok(reportSourceModels);
         }
 
         /// <summary>
@@ -483,56 +513,6 @@ namespace Reporting.Server.Controllers
             };
 
             return Ok(reportModel);
-        }
-
-        /// <summary>
-        /// Activate a report.
-        /// </summary>
-        /// <param name="request">The activate report request model.</param>
-        [HttpPut(ApiRoutes.V1.Reporting.Admin.ActivateReport)]
-        public async Task<IActionResult> ActivateReport(ActivateReportRequest request)
-        {
-            if (!ModelState.IsValid)
-            {
-                _logger.LogWarning("Invalid model state for ActivateReportRequest.");
-                return BadRequest(ModelState);
-            }
-
-            var activateReportModel = new ActivateReportModel
-            {
-                Key = request.Key.ToLower(),
-                UpdatedByUser = this.User.Identity?.Name ?? Environment.UserName,
-                UpdatedAtDate = DateTime.UtcNow
-            };
-
-            _logger.LogInformation("Activating report with key: {Key}", activateReportModel.Key);
-            await _reportService.ActivateReportAsync(activateReportModel);
-            return NoContent();
-        }
-
-        /// <summary>
-        /// Disable a report.
-        /// </summary>
-        /// <param name="request">The disable report request model.</param>
-        [HttpPut(ApiRoutes.V1.Reporting.Admin.DeactivateReport)]
-        public async Task<IActionResult> DisableReport(DisableReportRequest request)
-        {
-            if (!ModelState.IsValid)
-            {
-                _logger.LogWarning("Invalid model state for DisableReportRequest.");
-                return BadRequest(ModelState);
-            }
-
-            var disableReportModel = new DisableReportModel
-            {
-                Key = request.Key.ToLower(),
-                UpdatedByUser = this.User.Identity?.Name ?? Environment.UserName,
-                UpdatedAtDate = DateTime.UtcNow
-            };
-
-            _logger.LogInformation("Disabling report with key: {Key}", disableReportModel.Key);
-            await _reportService.DisableReportAsync(disableReportModel);
-            return NoContent();
         }
 
         /// <summary>

@@ -42,12 +42,17 @@
             }
         }
 
-        private static void AddIndexSheetContent(IXLWorksheet worksheet, ReportDetailsModel report, IEnumerable<ReportParameterModel>? parameters)
+        private static void AddIndexSheetContent(IXLWorksheet worksheet, ReportDetailsModel model, IEnumerable<ReportParameterModel>? parameters)
         {
+            if (model.Report == null)
+            {
+                throw new ArgumentNullException(nameof(model.Report), "Report cannot be null when creating an Excel report.");
+            }
+
             worksheet.Cell(1, 1).Value = "Report Name";
-            worksheet.Cell(1, 2).Value = report.Name ?? string.Empty;
+            worksheet.Cell(1, 2).Value = model.Report.Name ?? string.Empty;
             worksheet.Cell(2, 1).Value = "Report Description";
-            worksheet.Cell(2, 2).Value = report.Description ?? "No description provided.";
+            worksheet.Cell(2, 2).Value = model.Report.Description ?? "No description provided.";
             worksheet.Cell(3, 1).Value = "Execution Date";
             worksheet.Cell(3, 2).Value = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 
@@ -103,7 +108,7 @@
                 return;
             }
 
-            var convertedValue = ObjectHelpers.ConvertFromSqlValue(value, sqlDataType);
+            var convertedValue = ObjectHelpers.ConvertSqlValue(value, sqlDataType);
 
             if (convertedValue != null)
             {
