@@ -1,4 +1,4 @@
-import { ActivityType, ReportSourceType } from '../enums';
+import { ActivityType, ReportSourceType } from '@/enums';
 
 export interface ReportSourceModel {
   id: number;

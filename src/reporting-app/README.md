@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Report Catalog React App
 
-## Getting Started
+This project is a React application integrated into a .NET 4.6.1 MVC application, located in the `~Content/report-catalog` folder. The build output with static files is located in `~Content/report-catalog/build/static`.
 
-First, run the development server:
+## Project Setup
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+The React application is loaded through the `ReportCatalogController` and the associated `Index.cshtml` view. To make changes to the React application and reflect those changes in the MVC application, follow these steps.
+
+## Available Scripts
+
+In the project directory, you can run:
+
+### `npm start`
+
+Runs the app in the development mode. Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+
+The page will reload if you make edits. You will also see any lint errors in the console.
+
+### `npm test`
+
+Launches the test runner in the interactive watch mode. See the section about running tests for more information.
+
+### `npm run build`
+
+Builds the app for production to the `build` folder. It correctly bundles React in production mode and optimizes the build for the best performance.
+
+The build is minified, but the filenames do not include the hashes. Your app is ready to be deployed!
+
+After running the build, the static files will be located in the `~Content/report-catalog/build/static` directory.
+
+## Deploying Changes
+
+To deploy changes to the MVC application:
+
+1. Run `npm run build` to generate the updated build files.
+2. Update the path to the main JavaScript file in the `Index.cshtml` view.
+
+###  `Views/ReportCatalog/Index.cshtml`
+
+
+```
+@{     
+	ViewBag.Title = "Report Catalog";     
+	Layout = "~/Views/Shared/_LayoutNew.cshtml"; 
+}  
+<script src="~/Content/report-catalog/build/static/js/main.js"></script>  
+<div id="root"></div>
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Additional Information
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### `npm run eject`
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+**Note: this is a one-way operation. Once you eject, you can’t go back!**
+
+If you aren’t satisfied with the build tool and configuration choices, you can eject at any time. This command will remove the single build dependency from your project.
+
+Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc.) right into your project so you have full control over them. All of the commands except eject will still work, but they will point to the copied scripts so you can tweak them. At this point, you’re on your own.
+
+You don’t have to ever use eject. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However, we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
 
 ## Learn More
 
-To learn more about Next.js, take a look at the following resources:
+You can learn more in the Create React App documentation.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+To learn React, check out the [React documentation](https://reactjs.org/).

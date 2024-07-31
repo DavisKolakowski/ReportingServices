@@ -1,4 +1,4 @@
-import { SqlDataType } from '../enums';
+import { SqlDataType } from '@/enums';
 
 export interface ReportColumnDefinitionModel {
     columnId: number;

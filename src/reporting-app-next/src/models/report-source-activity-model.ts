@@ -1,4 +1,4 @@
-import { ActivityType } from '../enums';
+import { ActivityType } from '@/enums';
 
 export interface ReportSourceActivityModel {
   activityType: ActivityType;

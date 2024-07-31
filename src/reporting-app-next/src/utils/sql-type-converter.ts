@@ -1,4 +1,4 @@
-import { SqlDataType, HtmlInputType } from '../enums';
+import { SqlDataType, HtmlInputType } from '@/enums';
 import { GridColDef } from '@mui/x-data-grid';
 
 export const getDataType = (sqlType: SqlDataType) => {

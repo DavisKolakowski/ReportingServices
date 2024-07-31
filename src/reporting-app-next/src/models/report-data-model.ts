@@ -5,6 +5,6 @@ import { ReportColumnDefinitionModel } from './report-column-definition-model';
 export interface ReportDataModel {
   report: ReportModel;
   parameters?: ReportParameterModel[];
-  columnDefinitions: ReportColumnDefinitionModel[];
+  columnDefinitions?: ReportColumnDefinitionModel[];
   data?: Record<string, any>[];
 }
