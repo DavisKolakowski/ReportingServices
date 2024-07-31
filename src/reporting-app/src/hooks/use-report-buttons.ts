@@ -49,7 +49,7 @@ const useRefreshReportButton = () => {
   const navigate = useNavigate();
 
   const handleRefreshClick = async (reportKey: string, parameters: Record<string, any>) => {
-    const query = new URLSearchParams(parameters as Record<string, string>).toString();
+    const query = new URLSearchParams(parameters);
     setRefreshLoading(true);
     try {
       await navigate(`/reportcatalog/index/${reportKey}?${query}`);

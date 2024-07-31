@@ -14,6 +14,7 @@ import {
   DeleteReportRequest 
 } from '../requests';
 
+
 const api = axios.create({ baseURL: 'https://localhost:7260/api/v1/' });
 
 const ReportingClient = {
@@ -36,7 +37,7 @@ const ReportingClient = {
         return api.get(`reporting/report/${key}/file`, { params: parameters, responseType: 'blob' });
     },
     Admin: {
-        async getAllReports(): Promise<AxiosResponse<ReportModel[]>> {
+        async getReports(): Promise<AxiosResponse<ReportModel[]>> {
             return api.get('admin/reporting/all-reports');
         },
         async getReportDetails(key: string): Promise<AxiosResponse<ReportAdminDetailsModel>> {
@@ -61,4 +62,3 @@ const ReportingClient = {
 };
 
 export default ReportingClient;
-  

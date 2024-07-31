@@ -12,6 +12,7 @@ namespace Reporting.Server
     using Reporting.Core.Contracts;
     using Reporting.Core.Data;
     using Reporting.Core.Extensions;
+    using Reporting.Core.Providers;
     using Reporting.Core.Services;
 
     public class Program
@@ -22,7 +23,10 @@ namespace Reporting.Server
 
             // Add services to the container.
 
-            builder.Services.AddControllers();
+            builder.Services.AddControllers(options =>
+            {
+                options.ModelBinderProviders.Insert(0, new ParameterModelBinderProvider());
+            });
             var reportingDbConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
             if (string.IsNullOrWhiteSpace(reportingDbConnectionString))
             {

@@ -244,12 +244,6 @@
 
             var reportColumns = await _systemRepository.GetReportColumnDefinitionsAsync(reportSource.FullName);
 
-            if (reportColumns != report.ColumnDefinitions)
-            {
-                _logger.LogError($"Report column definitions do not match for report '{report.Report.Key}'");
-                throw new InvalidOperationException($"Report column definitions do not match for report '{report.Report.Key}'");
-            }
-
             var dataTable = new DataTable();
             if (!report.Report.HasParameters)
             {
@@ -325,10 +319,10 @@
 
             var reportColumns = await _systemRepository.GetReportColumnDefinitionsAsync(reportSource.FullName);
 
-            if (reportColumns != model.ColumnDefinitions)
+            if (reportColumns == null || !reportColumns.Any())
             {
-                _logger.LogError($"Report column definitions do not match for report '{model.Report.Key}'");
-                throw new InvalidOperationException($"Report column definitions do not match for report '{model.Report.Key}'");
+                _logger.LogError($"Report columns not found for report '{model.Report.Key}'");
+                throw new InvalidOperationException($"Report columns not found for report '{model.Report.Key}'");
             }
 
             var reportDataModel = new DataTable();

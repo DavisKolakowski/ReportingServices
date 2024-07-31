@@ -10,6 +10,7 @@ namespace Reporting.Server.Controllers
     using Microsoft.AspNetCore.Authorization;
     using Reporting.Core.Helpers;
     using Reporting.Core.Entities;
+    using Reporting.Core.Binders;
 
     [ApiController]
     public class ReportingController : ControllerBase
@@ -151,7 +152,7 @@ namespace Reporting.Server.Controllers
         /// <param name="queryParams">The report parameters as query string.</param>
         /// <returns>Execution result.</returns>
         [HttpGet(ApiRoutes.V1.Reporting.GetReportData)]
-        public async Task<ActionResult<ReportDataModel>> GetReportData(string key, [FromQuery] Dictionary<string, object>? queryParams = null)
+        public async Task<ActionResult<ReportDataModel>> GetReportData(string key, [ModelBinder(BinderType = typeof(ParameterModelBinder))] Dictionary<string, object>? queryParams = null)
         {
             if (string.IsNullOrEmpty(key))
             {
@@ -197,7 +198,7 @@ namespace Reporting.Server.Controllers
                         Name = p.Name,
                         SqlDataType = p.SqlDataType,
                         HasDefaultValue = p.HasDefaultValue,
-                        CurrentValue = queryParams[p.Name]
+                        CurrentValue = queryParams[p.Name],
                     })
                     : Array.Empty<ReportParameterModel>(),
                 ColumnDefinitions = report.ColumnDefinitions.Select(c => new ReportColumnDefinitionModel
@@ -227,7 +228,7 @@ namespace Reporting.Server.Controllers
         /// <param name="queryParams">The report parameters as query string.</param>
         /// <returns>The report file.</returns>
         [HttpGet(ApiRoutes.V1.Reporting.DownloadReport)]
-        public async Task<IActionResult> DownloadReport(string key, [FromQuery] Dictionary<string, object>? queryParams = null)
+        public async Task<IActionResult> DownloadReport(string key, [ModelBinder(BinderType = typeof(ParameterModelBinder))] Dictionary<string, object>? queryParams = null)
         {
             if (string.IsNullOrEmpty(key))
             {
@@ -273,7 +274,7 @@ namespace Reporting.Server.Controllers
                         Name = p.Name,
                         SqlDataType = p.SqlDataType,
                         HasDefaultValue = p.HasDefaultValue,
-                        CurrentValue = queryParams[p.Name]
+                        CurrentValue = queryParams[p.Name],
                     })
                     : Array.Empty<ReportParameterModel>(),
                 ColumnDefinitions = report.ColumnDefinitions.Select(c => new ReportColumnDefinitionModel

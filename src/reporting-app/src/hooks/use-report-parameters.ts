@@ -10,8 +10,8 @@ const useReportParameters = (reportKey: string, showDialog: boolean) => {
     if (showDialog) {
       const fetchParameters = async () => {
         try {
-          const response = await reportingClient.getReportDetails(reportKey);
-          setParamResponse(response.data);
+          const response = await reportingClient.getReportParameters(reportKey);
+          setParamResponse({ parameters: response.data });
         } catch (error) {
           console.error('Failed to fetch report parameters:', error);
         }
@@ -32,4 +32,3 @@ const useReportParameters = (reportKey: string, showDialog: boolean) => {
 };
 
 export default useReportParameters;
-

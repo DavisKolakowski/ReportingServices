@@ -3,9 +3,8 @@
     using System;
     using System.Data;
     using System.Text.Json;
-    using ClosedXML.Excel;
 
-    using DocumentFormat.OpenXml.Spreadsheet;
+    using Dapper;
 
     public static class ObjectHelpers
     {
@@ -16,94 +15,158 @@
                 return DBNull.Value;
             }
 
-            var convertedValue = FormatValue(value);
+            var convertedValue = ConvertJsonElement(value);
 
-            return sqlDataType.ToLower() switch
+            if (convertedValue == null)
             {
-                "tinyint" => Convert.ToByte(convertedValue),
-                "smallint" => Convert.ToInt16(convertedValue),
-                "int" => Convert.ToInt32(convertedValue),
-                "bigint" => Convert.ToInt64(convertedValue),
-                "bit" => Convert.ToBoolean(convertedValue),
-                "decimal" => Convert.ToDecimal(convertedValue),
-                "numeric" => Convert.ToDecimal(convertedValue),
-                "money" => Convert.ToDecimal(convertedValue),
-                "smallmoney" => Convert.ToDecimal(convertedValue),
-                "float" => Convert.ToDouble(convertedValue),
-                "real" => Convert.ToSingle(convertedValue),
-                "date" => Convert.ToDateTime(convertedValue),
-                "datetime" => Convert.ToDateTime(convertedValue),
-                "smalldatetime" => Convert.ToDateTime(convertedValue),
-                "datetime2" => Convert.ToDateTime(convertedValue),
-                "time" => TimeSpan.TryParse(convertedValue?.ToString(), out var timeResult) ? timeResult : TimeSpan.Zero,
-                "datetimeoffset" => DateTimeOffset.TryParse(convertedValue?.ToString(), out var dtoResult) ? dtoResult : DateTimeOffset.MinValue,
-                "char" => Convert.ToString(convertedValue) ?? string.Empty,
-                "varchar" => Convert.ToString(convertedValue) ?? string.Empty,
-                "text" => Convert.ToString(convertedValue) ?? string.Empty,
-                "nchar" => Convert.ToString(convertedValue) ?? string.Empty,
-                "nvarchar" => Convert.ToString(convertedValue) ?? string.Empty,
-                "ntext" => Convert.ToString(convertedValue) ?? string.Empty,
-                "binary" => convertedValue is byte[] bytes ? bytes : Array.Empty<byte>(),
-                "varbinary" => convertedValue is byte[] varBytes ? varBytes : Array.Empty<byte>(),
-                "image" => convertedValue is byte[] imgBytes ? imgBytes : Array.Empty<byte>(),
-                "uniqueidentifier" => Guid.TryParse(convertedValue?.ToString(), out var guidResult) ? guidResult : Guid.Empty,
-                _ => convertedValue
-            };
+                return DBNull.Value;
+            }
+
+            switch (sqlDataType.ToLower())
+            {
+                case "tinyint":
+                    return Convert.ToByte(convertedValue);
+                case "smallint":
+                    return Convert.ToInt16(convertedValue);
+                case "int":
+                    return Convert.ToInt32(convertedValue);
+                case "bigint":
+                    return Convert.ToInt64(convertedValue);
+                case "bit":
+                    return Convert.ToBoolean(convertedValue);
+                case "decimal":
+                case "numeric":
+                case "money":
+                case "smallmoney":
+                    return Convert.ToDecimal(convertedValue);
+                case "float":
+                    return Convert.ToDouble(convertedValue);
+                case "real":
+                    return Convert.ToSingle(convertedValue);
+                case "date":
+                case "datetime":
+                case "smalldatetime":
+                case "datetime2":
+                    return DateTime.TryParse(convertedValue.ToString(), out var dateTimeValue) ? dateTimeValue : throw new InvalidCastException($"Unable to cast {convertedValue} to DateTime.");
+                case "time":
+                    return TimeSpan.TryParse(convertedValue?.ToString(), out var timeResult) ? timeResult : TimeSpan.Zero;
+                case "datetimeoffset":
+                    return DateTimeOffset.TryParse(convertedValue?.ToString(), out var dtoResult) ? dtoResult : DateTimeOffset.MinValue;
+                case "char":
+                case "varchar":
+                case "text":
+                case "nchar":
+                case "nvarchar":
+                case "ntext":
+                    return Convert.ToString(convertedValue) ?? string.Empty;
+                case "binary":
+                    return convertedValue is byte[] bytes ? bytes : Array.Empty<byte>();
+                case "varbinary":
+                    return convertedValue is byte[] varBytes ? varBytes : Array.Empty<byte>();
+                case "image":
+                    return convertedValue is byte[] imgBytes ? imgBytes : Array.Empty<byte>();
+                case "uniqueidentifier":
+                    return Guid.TryParse(convertedValue.ToString(), out var guidResult) ? guidResult : Guid.Empty;
+                default:
+                    return convertedValue;
+            }
         }
 
         public static Type GetCSharpTypeForSqlTypeString(string sqlType)
         {
-            return sqlType.ToLower() switch
+            switch (sqlType.ToLower())
             {
-                "bigint" => typeof(long),
-                "binary" => typeof(byte[]),
-                "bit" => typeof(bool),
-                "char" => typeof(string),
-                "date" => typeof(DateTime),
-                "datetime" => typeof(DateTime),
-                "datetime2" => typeof(DateTime),
-                "datetimeoffset" => typeof(DateTimeOffset),
-                "decimal" => typeof(decimal),
-                "float" => typeof(double),
-                "image" => typeof(byte[]),
-                "int" => typeof(int),
-                "money" => typeof(decimal),
-                "nchar" => typeof(string),
-                "ntext" => typeof(string),
-                "numeric" => typeof(decimal),
-                "nvarchar" => typeof(string),
-                "real" => typeof(float),
-                "smalldatetime" => typeof(DateTime),
-                "smallint" => typeof(short),
-                "smallmoney" => typeof(decimal),
-                "text" => typeof(string),
-                "time" => typeof(TimeSpan),
-                "timestamp" => typeof(byte[]),
-                "tinyint" => typeof(byte),
-                "uniqueidentifier" => typeof(Guid),
-                "varbinary" => typeof(byte[]),
-                "varchar" => typeof(string),
-                _ => typeof(object),
-            };
+                case "bigint":
+                    return typeof(long);
+                case "binary":
+                    return typeof(byte[]);
+                case "bit":
+                    return typeof(bool);
+                case "char":
+                    return typeof(string);
+                case "date":
+                case "datetime":
+                case "datetime2":
+                    return typeof(DateTime);
+                case "datetimeoffset":
+                    return typeof(DateTimeOffset);
+                case "decimal":
+                case "numeric":
+                    return typeof(decimal);
+                case "float":
+                    return typeof(double);
+                case "image":
+                    return typeof(byte[]);
+                case "int":
+                    return typeof(int);
+                case "money":
+                    return typeof(decimal);
+                case "nchar":
+                case "ntext":
+                case "nvarchar":
+                case "varchar":
+                case "text":
+                    return typeof(string);
+                case "real":
+                    return typeof(float);
+                case "smalldatetime":
+                    return typeof(DateTime);
+                case "smallint":
+                    return typeof(short);
+                case "smallmoney":
+                    return typeof(decimal);
+                case "time":
+                    return typeof(TimeSpan);
+                case "timestamp":
+                    return typeof(byte[]);
+                case "tinyint":
+                    return typeof(byte);
+                case "uniqueidentifier":
+                    return typeof(Guid);
+                case "varbinary":
+                    return typeof(byte[]);
+                default:
+                    return typeof(object);
+            }
         }
 
-        private static object? FormatValue(object value)
+        public static object ConvertToObject(string value)
         {
-            var jsonElement = JsonSerializer.SerializeToElement(value);
-            return jsonElement.ValueKind switch
+            try
             {
-                JsonValueKind.Object => jsonElement,
-                JsonValueKind.Array => jsonElement,
-                JsonValueKind.String => jsonElement.GetString(),
-                JsonValueKind.Number => jsonElement.TryGetInt32(out var intValue)
-                    ? intValue : jsonElement.TryGetDouble(out var doubleValue)
-                    ? doubleValue : (object?)jsonElement.GetDecimal(),
-                JsonValueKind.True => true,
-                JsonValueKind.False => false,
-                JsonValueKind.Null => null,
-                JsonValueKind.Undefined => null,
-                _ => null
-            };
+                var jsonElement = JsonSerializer.Deserialize<JsonElement>(value);
+                return ConvertJsonElement(jsonElement)!;
+            }
+            catch
+            {
+                return value;
+            }
+        }
+
+        private static object? ConvertJsonElement(object value)
+        {
+            if (value is JsonElement jsonElement)
+            {
+                return jsonElement.ValueKind switch
+                {
+                    JsonValueKind.String => jsonElement.GetString(),
+                    JsonValueKind.Number => jsonElement.TryGetInt32(out var intValue) ? intValue :
+                                            jsonElement.TryGetInt64(out var longValue) ? longValue :
+                                            jsonElement.TryGetDecimal(out var decimalValue) ? decimalValue :
+                                            jsonElement.TryGetDouble(out var doubleValue) ? doubleValue : jsonElement.GetDecimal(),
+                    JsonValueKind.True => true,
+                    JsonValueKind.False => false,
+                    JsonValueKind.Null => DBNull.Value,
+                    _ => jsonElement.GetRawText(),
+                };
+            }
+
+            if (value.GetType() == typeof(object) && value.ToString() == "{}")
+            {
+                return DBNull.Value;
+            }
+
+            return value;
         }
     }
 }
