@@ -52,7 +52,7 @@ const useRefreshReportButton = () => {
     const query = new URLSearchParams(parameters);
     setRefreshLoading(true);
     try {
-      await navigate(`/reportcatalog/index/${reportKey}?${query}`);
+      await navigate(`/reporting/index/${reportKey}?${query}`);
       setRefreshSuccess(true);
       setSnackbar({
         message: `Report ${reportKey} has been successfully refreshed${Object.keys(parameters).length ? ` with parameters ${JSON.stringify(parameters)}` : ''}`,
@@ -83,4 +83,38 @@ const useRefreshReportButton = () => {
   };
 };
 
-export { useDownloadReportButton, useRefreshReportButton };
+const useShareReportButton = () => {
+    const [shareSuccess, setShareSuccess] = useState(false);
+    const [shareError, setShareError] = useState(false);
+    const [snackbar, setSnackbar] = useState<{ message: string; severity: AlertColor } | null>(null);
+
+    const handleShareClick = (reportKey: string, parameters: Record<string, any>) => {
+        try {
+            const query = new URLSearchParams(parameters);
+            const url = `${window.location.origin}/reporting/index/${reportKey}?${query}`;
+            navigator.clipboard.writeText(url);
+            setShareSuccess(true);
+            setSnackbar({ message: 'URL copied to clipboard', severity: 'success' });
+            setTimeout(() => setShareSuccess(false), 2000);
+        } catch (error) {
+            console.error('Failed to share the report URL:', error);
+            setShareError(true);
+            setSnackbar({ message: 'Failed to copy URL', severity: 'error' });
+            setTimeout(() => setShareError(false), 2000);
+        }
+    };
+
+    const handleSnackbarClose = () => {
+        setSnackbar(null);
+    };
+
+    return {
+        handleShareClick,
+        shareSuccess,
+        shareError,
+        snackbar,
+        handleSnackbarClose,
+    };
+};
+
+export { useDownloadReportButton, useRefreshReportButton, useShareReportButton };

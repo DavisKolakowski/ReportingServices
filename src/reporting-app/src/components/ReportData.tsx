@@ -9,13 +9,22 @@ const useGridColumns = (columnDefinitions: ReportColumnDefinitionModel[]): GridC
   return React.useMemo(() => 
     columnDefinitions
       .filter((col) => col.name !== 'InternalId')
-      .map((col) => ({
-        field: col.name ?? '',
-        headerName: col.name ?? '',
-        type: getGridColumnType(col.sqlDataType as SqlDataType),
-        flex: 1,
-        sortable: true,
-      })), [columnDefinitions]
+      .map((col) => {
+        const columnType = getGridColumnType(col.sqlDataType as SqlDataType);
+        return {
+          field: col.name ?? '',
+          headerName: col.name ?? '',
+          type: columnType,
+          flex: 1,
+          sortable: true,
+          valueGetter: (params) => {
+            if (columnType === 'date' || columnType === 'dateTime') {
+              return new Date(params);
+            }
+            return params;
+          },
+        };
+      }), [columnDefinitions]
   );
 };
 
@@ -39,7 +48,7 @@ export default function ReportData({ report, columnDefinitions, data }: ReportDa
       <DataGrid 
         rows={rows}
         columns={columns}
-        getRowId={(row) => row.id}
+        getRowId={(row) => row.InternalId}
         initialState={{
           pagination: {
             paginationModel: {

@@ -48,7 +48,7 @@ const ActiveReportsView: React.FC = () => {
     const query = new URLSearchParams(
       Object.fromEntries(Object.entries(parameters || {}).map(([k, v]) => [k, String(v)]))
     ).toString();
-    navigate(`/reportcatalog/index/${key}?${query}`);
+    navigate(`/reporting/index/${key}?${query}`);
   };
 
   const handleDownloadSelect = async (key: string, parameters?: Record<string, object>) => {

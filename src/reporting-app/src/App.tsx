@@ -9,8 +9,8 @@ function App() {
     <ThemeProvider theme={defaultAppTheme}>
       <Router>
           <Routes>
-            <Route path="reportcatalog/index/" element={<ActiveReportsView />} />
-            <Route path="reportcatalog/index/:reportKey" element={<ReportView />} />
+            <Route path="reporting/index" element={<ActiveReportsView />} />
+            <Route path="reporting/index/:reportKey" element={<ReportView />} />
           </Routes>
       </Router>
     </ThemeProvider>
