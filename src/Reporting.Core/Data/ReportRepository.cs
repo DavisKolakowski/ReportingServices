@@ -173,13 +173,6 @@
         {
             using (var connection = _connectionService.GetConnection())
             {
-                var commandType = source.Type == ReportSourceType.Procedure ? CommandType.StoredProcedure : CommandType.Text;
-                var sql = source.FullName;
-
-                _logger.LogInformation("Executing report with SQL: {Sql}, CommandType: {CommandType}", sql, commandType);
-
-                var dynamicParameters = CreateDynamicParameters(parameters);
-
                 try
                 {
                     var dataTable = new DataTable();
@@ -189,9 +182,16 @@
                         dataTable.Columns.Add(column.Name, ObjectHelpers.GetCSharpTypeForSqlTypeString(column.SqlDataType!));
                     }
 
-                    using (var reader = await connection.ExecuteReaderAsync(sql, dynamicParameters, commandType: commandType))
+                    switch (source.Type)
                     {
-                        dataTable.Load(reader);
+                        case ReportSourceType.Procedure:
+                            var dynamicParameters = CreateDynamicParameters(parameters);
+                            await ExecuteProcedureAsync(connection, source.FullName, dynamicParameters, dataTable);
+                            break;
+                        case ReportSourceType.View:
+                        default:
+                            await ExecuteViewAsync(connection, source.FullName, dataTable);
+                            break;
                     }
 
                     return dataTable;
@@ -201,6 +201,23 @@
                     _logger.LogError(ex, "An error occurred while executing the report: {Message}", ex.Message);
                     throw;
                 }
+            }
+        }
+
+        private async Task ExecuteProcedureAsync(IDbConnection connection, string procedureName, DynamicParameters parameters, DataTable dataTable)
+        {
+            using (var reader = await connection.ExecuteReaderAsync(procedureName, parameters, commandType: CommandType.StoredProcedure))
+            {
+                dataTable.Load(reader);
+            }
+        }
+
+        private async Task ExecuteViewAsync(IDbConnection connection, string viewName, DataTable dataTable)
+        {
+            var sql = $"SELECT * FROM {viewName}";
+            using (var reader = await connection.ExecuteReaderAsync(sql))
+            {
+                dataTable.Load(reader);
             }
         }
 

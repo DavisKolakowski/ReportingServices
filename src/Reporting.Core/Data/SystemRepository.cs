@@ -31,15 +31,18 @@
                         ELSE NULL
                     END AS [CurrentValue],
                     t.name AS [SqlDataType],
-                    p.has_default_value AS [HasDefaultValue]                    
+                    p.has_default_value AS [HasDefaultValue]
                 FROM 
                     sys.parameters p
                 JOIN 
-                    sys.types t ON p.system_type_id = t.system_type_id
+                    sys.types t ON p.user_type_id = t.user_type_id
                 JOIN
                     sys.objects o ON p.object_id = o.object_id
                 WHERE 
-                    o.name = @ObjectName AND o.schema_id = SCHEMA_ID(@SchemaName) AND o.type IN ('P', 'PC') -- P for procedures, PC for CLR procedures
+                    o.name = @ObjectName 
+                    AND o.schema_id = SCHEMA_ID(@SchemaName) 
+                    AND o.type IN ('P', 'PC') -- P for procedures, PC for CLR procedures
+                    AND t.is_user_defined = 0 -- Ensure we're only getting system types
                 ORDER BY 
                     p.parameter_id;
                 ";

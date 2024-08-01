@@ -1,12 +1,13 @@
-﻿CREATE OR ALTER TRIGGER [Trigger_ReportSource]
+-- Create Trigger
+CREATE OR ALTER TRIGGER [Trigger_ReportSource]
 ON DATABASE
-FOR CREATE_PROCEDURE, ALTER_PROCEDURE, DROP_PROCEDURE, 
+FOR CREATE_PROCEDURE, ALTER_PROCEDURE, DROP_PROCEDURE,
     CREATE_VIEW, ALTER_VIEW, DROP_VIEW
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    DECLARE 
+    DECLARE
         @EventType NVARCHAR(128),
         @SchemaName NVARCHAR(128),
         @SourceName NVARCHAR(128),
@@ -17,22 +18,22 @@ BEGIN
         @CreatedBy NVARCHAR(128) = SUSER_NAME(),
         @MappedActivityType NVARCHAR(50);
 
-    SELECT 
+    SELECT
         @EventType = EVENTDATA().value('(/EVENT_INSTANCE/EventType)[1]', 'NVARCHAR(128)'),
         @SchemaName = EVENTDATA().value('(/EVENT_INSTANCE/SchemaName)[1]', 'NVARCHAR(128)'),
         @SourceName = EVENTDATA().value('(/EVENT_INSTANCE/ObjectName)[1]', 'NVARCHAR(128)');
 
     IF @SchemaName = 'Reporting'
     BEGIN
-        SET @SourceType = 
-            CASE 
+        SET @SourceType =
+            CASE
                 WHEN @EventType IN ('CREATE_PROCEDURE', 'ALTER_PROCEDURE') THEN 'Procedure'
                 WHEN @EventType IN ('CREATE_VIEW', 'ALTER_VIEW') THEN 'View'
                 ELSE NULL
             END;
 
-        SET @MappedActivityType = 
-            CASE 
+        SET @MappedActivityType =
+            CASE
                 WHEN @EventType IN ('CREATE_PROCEDURE', 'CREATE_VIEW') THEN 'Created'
                 WHEN @EventType IN ('ALTER_PROCEDURE', 'ALTER_VIEW') THEN 'Updated'
                 WHEN @EventType IN ('DROP_PROCEDURE', 'DROP_VIEW') THEN 'Deleted'
@@ -66,8 +67,8 @@ BEGIN
                 FROM sys.columns c
                 JOIN sys.objects o ON c.object_id = o.object_id
                 WHERE o.schema_id = SCHEMA_ID(@SchemaName)
-                  AND o.name = @SourceName
-                  AND c.name = 'InternalId'
+                    AND o.name = @SourceName
+                    AND c.name = 'InternalId'
             )
             BEGIN
                 PRINT 'View ' + @ViewName + ' is valid for reporting.';
