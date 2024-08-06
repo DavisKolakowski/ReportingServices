@@ -19,7 +19,7 @@ const useGridColumns = (columnDefinitions: ReportColumnDefinitionModel[]): GridC
           sortable: true,
           valueGetter: (params) => {
             if (columnType === 'date' || columnType === 'dateTime') {
-              return new Date(params);
+              return new Date(params) ?? '';
             }
             return params;
           },
