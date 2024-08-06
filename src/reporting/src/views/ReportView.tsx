@@ -15,6 +15,7 @@ import ErrorIcon from '@mui/icons-material/Error';
 import ShareIcon from '@mui/icons-material/Share';
 import { green, red } from '@mui/material/colors';
 import { useDownloadReportButton, useRefreshReportButton, useFetchReportDetails, useShareReportButton } from '../hooks';
+import { formatDateTime } from '../utils';
 
 const ReportView: React.FC = () => {
     const { reportKey } = useParams<{ reportKey: string }>();
@@ -118,7 +119,7 @@ const ReportView: React.FC = () => {
                 <Box mt={2}>
                     <Typography variant="h4">{details.report.name}</Typography>
                     <Typography variant="subtitle1">{details.report.description}</Typography>
-                    <Typography variant="subtitle2">Created Date: {details.report.createdAtDate}</Typography>
+                    <Typography variant="subtitle2">Created Date: {formatDateTime(details.report.createdAtDate)}</Typography>
                     <Typography variant="subtitle2">Author: {details.report.createdByUser}</Typography>
                     {details.parameters && details.parameters.length > 0 && (
                         <Box mt={2} maxWidth="sm">
